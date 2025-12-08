@@ -194,7 +194,7 @@ async def _run_analysis(
     if not config.is_authenticated:
         output_console.print_warning(
             "No GitHub token found. Using unauthenticated access (60 requests/hour).\n"
-            "Set GITHUB_TOKEN environment variable for higher rate limits and contribution data."
+            "Set GITHUB_RESEARCHER_TOKEN environment variable for higher rate limits and contribution data."
         )
         output_console.print()
 
@@ -328,7 +328,7 @@ def check_token():
         console.print("Search API: Limited")
         console.print()
         console.print("To configure a token:")
-        console.print("  export GITHUB_TOKEN=your_token_here")
+        console.print("  export GITHUB_RESEARCHER_TOKEN=your_token_here")
         console.print()
         console.print("Create a token at: https://github.com/settings/tokens")
         console.print("No special scopes needed for public data access.")

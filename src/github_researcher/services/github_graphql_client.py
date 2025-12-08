@@ -128,7 +128,7 @@ class GitHubGraphQLClient:
         if not self.config.github_token:
             raise GitHubGraphQLError(
                 "GitHub token is required for GraphQL API. "
-                "Set GITHUB_TOKEN environment variable."
+                "Set GITHUB_RESEARCHER_TOKEN environment variable."
             )
 
         return {

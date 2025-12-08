@@ -131,7 +131,7 @@ class RateLimiter:
                         f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]"
                     )
                     console.print(
-                        f"[dim]  Tip: Set GITHUB_TOKEN for 5,000 requests/hour instead of 60[/dim]\n"
+                        f"[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]\n"
                     )
                     raise RateLimitExceededError(
                         f"Rate limit exceeded. Resets in {human_time} (at {reset_at})"
@@ -268,7 +268,7 @@ def check_and_report_rate_limit(rate_info: dict, is_authenticated: bool) -> bool
 
         if not is_authenticated:
             console.print(
-                f"[dim]  Tip: Set GITHUB_TOKEN for 5,000 requests/hour instead of 60[/dim]"
+                f"[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
             )
 
         console.print()
