@@ -180,7 +180,11 @@ async def _run_analysis(
     from github_researcher.services.activity_collector import ActivityCollector
     from github_researcher.models.activity import ActivityData, ActivitySummary
     from github_researcher.models.contribution import ContributionStats
-    from github_researcher.utils.rate_limiter import get_rate_limiter
+    from github_researcher.utils.rate_limiter import (
+        get_rate_limiter,
+        check_rate_limit_from_api,
+        check_and_report_rate_limit,
+    )
 
     output_console = OutputConsole(verbose=verbose, quiet=quiet)
     config = get_config()
@@ -193,6 +197,14 @@ async def _run_analysis(
             "Set GITHUB_TOKEN environment variable for higher rate limits and contribution data."
         )
         output_console.print()
+
+    # Check rate limit before starting
+    rate_info = await check_rate_limit_from_api(
+        api_url=config.github_api_url,
+        token=config.github_token,
+    )
+    if not check_and_report_rate_limit(rate_info, config.is_authenticated):
+        return  # Exit if rate limit exhausted
 
     # Initialize clients
     rate_limiter = get_rate_limiter()
