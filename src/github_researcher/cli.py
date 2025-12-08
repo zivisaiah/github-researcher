@@ -206,7 +206,7 @@ async def _run_analysis(
         # Initialize collectors
         profile_collector = ProfileCollector(rest_client, graphql_client)
         repo_collector = RepoCollector(rest_client, graphql_client)
-        activity_collector = ActivityCollector(rest_client)
+        activity_collector = ActivityCollector(rest_client, is_authenticated=config.is_authenticated)
 
         contribution_collector = None
         if graphql_client:
