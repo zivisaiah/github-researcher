@@ -141,7 +141,6 @@ class GitHubGraphQLClient:
         """Get or create the HTTP client."""
         if self._client is None or self._client.is_closed:
             self._client = httpx.AsyncClient(
-                base_url=self.config.github_graphql_url,
                 headers=self._get_headers(),
                 timeout=self.config.request_timeout,
             )
@@ -188,7 +187,7 @@ class GitHubGraphQLClient:
         if variables:
             payload["variables"] = variables
 
-        response = await client.post("", json=payload)
+        response = await client.post(self.config.github_graphql_url, json=payload)
 
         # Update rate limit from response
         self.rate_limiter.update_graphql_from_headers(dict(response.headers))

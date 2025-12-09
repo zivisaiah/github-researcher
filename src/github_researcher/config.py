@@ -32,7 +32,8 @@ class Config:
     @classmethod
     def from_env(cls) -> "Config":
         """Load configuration from environment variables."""
-        load_dotenv()
+        # override=False ensures environment variables take precedence over .env
+        load_dotenv(override=False)
 
         # Support both GITHUB_RESEARCHER_TOKEN (preferred) and GITHUB_TOKEN (fallback)
         token = os.getenv("GITHUB_RESEARCHER_TOKEN") or os.getenv("GITHUB_TOKEN")
