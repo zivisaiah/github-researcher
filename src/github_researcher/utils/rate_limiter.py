@@ -234,8 +234,8 @@ async def check_rate_limit_from_api(
                         "reset": search.get("reset", time.time() + 60),
                     },
                 }
-    except Exception:
-        pass
+    except Exception as e:
+        console.print(f"[dim]Could not check rate limit: {e}[/dim]")
 
     # Return defaults if we can't check
     return {
