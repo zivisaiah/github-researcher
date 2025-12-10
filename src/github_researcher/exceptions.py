@@ -10,24 +10,41 @@ class GitHubResearcherError(Exception):
 class GitHubAPIError(GitHubResearcherError):
     """Base exception for GitHub API errors."""
 
-    def __init__(self, message: str, status_code: int | None = None):
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        response_body: dict | None = None,
+    ):
         super().__init__(message)
         self.status_code = status_code
+        self.response_body = response_body
 
 
 class GitHubRateLimitError(GitHubAPIError):
     """Raised when GitHub API rate limit is exceeded."""
 
-    def __init__(self, message: str, reset_time: float | None = None):
-        super().__init__(message, status_code=403)
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = 403,
+        response_body: dict | None = None,
+        reset_time: float | None = None,
+    ):
+        super().__init__(message, status_code=status_code, response_body=response_body)
         self.reset_time = reset_time
 
 
 class GitHubNotFoundError(GitHubAPIError):
     """Raised when a GitHub resource is not found."""
 
-    def __init__(self, message: str):
-        super().__init__(message, status_code=404)
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = 404,
+        response_body: dict | None = None,
+    ):
+        super().__init__(message, status_code=status_code, response_body=response_body)
 
 
 class GitHubGraphQLError(GitHubResearcherError):
