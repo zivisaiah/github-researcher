@@ -58,3 +58,6 @@ credentials.json
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Auto-generated version file (setuptools-scm)
+src/github_researcher/_version.py

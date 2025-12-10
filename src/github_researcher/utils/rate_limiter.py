@@ -1,15 +1,16 @@
 """Rate limiter for GitHub API requests."""
 
 import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 import httpx
-from rich.console import Console
 
-console = Console()
+from github_researcher.exceptions import RateLimitExceededError
+
+logger = logging.getLogger(__name__)
 
 # Threshold for warning about low remaining requests
 LOW_REMAINING_THRESHOLD = 10
@@ -42,12 +43,6 @@ def format_reset_time(reset_timestamp: float) -> str:
     """Format reset timestamp to a human-readable local time."""
     reset_dt = datetime.fromtimestamp(reset_timestamp)
     return reset_dt.strftime("%H:%M:%S")
-
-
-class RateLimitExceededError(Exception):
-    """Raised when rate limit is exceeded and we don't want to wait."""
-
-    pass
 
 
 @dataclass
@@ -128,17 +123,12 @@ class RateLimiter:
                 if wait_time > 0:
                     human_time = format_time_remaining(wait_time)
                     reset_at = format_reset_time(state.reset_time)
-                    console.print()
-                    console.print(
-                        f"[red]Rate limit exceeded[/red] for {api_name} API."
+                    logger.error(
+                        "Rate limit exceeded for %s API. Resets in %s (at %s)",
+                        api_name,
+                        human_time,
+                        reset_at,
                     )
-                    console.print(
-                        f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]"
-                    )
-                    console.print(
-                        "[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
-                    )
-                    console.print()
                     raise RateLimitExceededError(
                         f"Rate limit exceeded. Resets in {human_time} (at {reset_at})"
                     )
@@ -180,7 +170,7 @@ class RateLimiter:
 
 
 # Global rate limiter instance
-_rate_limiter: Optional[RateLimiter] = None
+_rate_limiter: RateLimiter | None = None
 
 
 def get_rate_limiter() -> RateLimiter:
@@ -199,7 +189,7 @@ def reset_rate_limiter() -> None:
 
 async def check_rate_limit_from_api(
     api_url: str = "https://api.github.com",
-    token: Optional[str] = None,
+    token: str | None = None,
 ) -> dict:
     """Check current rate limit status from GitHub API.
 
@@ -239,9 +229,9 @@ async def check_rate_limit_from_api(
                     },
                 }
     except httpx.HTTPError as e:
-        console.print(f"[dim]Could not check rate limit (HTTP error): {e}[/dim]")
+        logger.debug("Could not check rate limit (HTTP error): %s", e)
     except httpx.TimeoutException as e:
-        console.print(f"[dim]Could not check rate limit (timeout): {e}[/dim]")
+        logger.debug("Could not check rate limit (timeout): %s", e)
 
     # Return defaults if we can't check
     return {
@@ -269,22 +259,18 @@ def check_and_report_rate_limit(rate_info: dict, is_authenticated: bool) -> bool
         human_time = format_time_remaining(reset_time - time.time())
         reset_at = format_reset_time(reset_time)
 
-        console.print()
-        console.print(f"[red]Rate limit exhausted[/red] (0/{limit} requests remaining)")
-        console.print(f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]")
-
+        logger.error(
+            "Rate limit exhausted (0/%d requests remaining). Resets in %s (at %s)",
+            limit,
+            human_time,
+            reset_at,
+        )
         if not is_authenticated:
-            console.print(
-                "[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
-            )
-
-        console.print()
+            logger.info("Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60")
         return False
 
     # Show warning if running low
     if remaining < LOW_REMAINING_THRESHOLD:
-        console.print(
-            f"[yellow]Warning: Only {remaining}/{limit} API requests remaining[/yellow]"
-        )
+        logger.warning("Only %d/%d API requests remaining", remaining, limit)
 
     return True

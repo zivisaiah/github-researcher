@@ -2,23 +2,19 @@
 
 from datetime import date, datetime
 
-import pytest
-
-from github_researcher.models.user import UserProfile, SocialData, Organization
-from github_researcher.models.repository import Repository, RepositorySummary
-from github_researcher.models.contribution import (
-    ContributionDay,
-    ContributionCalendar,
-    ContributionStats,
-)
 from github_researcher.models.activity import (
-    GitHubEvent,
-    Commit,
-    PullRequest,
-    Issue,
     ActivityData,
     ActivitySummary,
+    Commit,
+    GitHubEvent,
+    PullRequest,
 )
+from github_researcher.models.contribution import (
+    ContributionCalendar,
+    ContributionDay,
+)
+from github_researcher.models.repository import Repository, RepositorySummary
+from github_researcher.models.user import UserProfile
 
 
 class TestUserProfile:
@@ -150,10 +146,12 @@ class TestContributionCalendar:
 
         # Create a calendar with some contributions
         weeks = [
-            ContributionWeek(days=[
-                ContributionDay(date=date(2024, 1, i), count=i % 3, level="NONE")
-                for i in range(1, 8)
-            ])
+            ContributionWeek(
+                days=[
+                    ContributionDay(date=date(2024, 1, i), count=i % 3, level="NONE")
+                    for i in range(1, 8)
+                ]
+            )
         ]
 
         calendar = ContributionCalendar(

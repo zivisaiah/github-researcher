@@ -1,17 +1,13 @@
 """Contribution calendar collector service."""
 
+import logging
 from datetime import date
-from typing import Optional
 
-from rich.console import Console
-
+from github_researcher.exceptions import GitHubGraphQLError
 from github_researcher.models.contribution import ContributionStats
-from github_researcher.services.github_graphql_client import (
-    GitHubGraphQLClient,
-    GitHubGraphQLError,
-)
+from github_researcher.services.github_graphql_client import GitHubGraphQLClient
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 
 class ContributionCollector:
@@ -23,8 +19,8 @@ class ContributionCollector:
     async def collect_contributions(
         self,
         username: str,
-        from_date: Optional[date] = None,
-        to_date: Optional[date] = None,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> ContributionStats:
         """Collect contribution statistics for a user.
 
@@ -36,27 +32,23 @@ class ContributionCollector:
         Returns:
             ContributionStats with calendar and totals
         """
-        console.print(f"[dim]Fetching contribution calendar for {username}...[/dim]")
+        logger.debug("Fetching contribution calendar for %s", username)
 
         try:
-            data = await self.graphql_client.get_contributions(
-                username, from_date, to_date
-            )
+            data = await self.graphql_client.get_contributions(username, from_date, to_date)
             stats = ContributionStats.from_graphql(data)
 
-            console.print(
-                f"[dim]Found {stats.total_contributions} contributions[/dim]"
-            )
+            logger.debug("Found %d contributions", stats.total_contributions)
 
             return stats
         except GitHubGraphQLError as e:
-            console.print(f"[red]Failed to fetch contributions: {e}[/red]")
+            logger.error("Failed to fetch contributions: %s", e)
             raise
 
     async def collect_yearly_contributions(
         self,
         username: str,
-        years: Optional[list[int]] = None,
+        years: list[int] | None = None,
     ) -> dict[int, ContributionStats]:
         """Collect contributions for multiple years.
 
@@ -70,9 +62,7 @@ class ContributionCollector:
         if years is None:
             years = [date.today().year]
 
-        console.print(
-            f"[dim]Fetching contributions for years: {years}...[/dim]"
-        )
+        logger.debug("Fetching contributions for years: %s", years)
 
         results = {}
         for year in years:
@@ -86,22 +76,18 @@ class ContributionCollector:
                     to_date = today
 
                 if from_date <= today:
-                    data = await self.graphql_client.get_contributions(
-                        username, from_date, to_date
-                    )
+                    data = await self.graphql_client.get_contributions(username, from_date, to_date)
                     results[year] = ContributionStats.from_graphql(data)
             except GitHubGraphQLError as e:
-                console.print(
-                    f"[yellow]Failed to fetch contributions for {year}: {e}[/yellow]"
-                )
+                logger.warning("Failed to fetch contributions for %d: %s", year, e)
 
         return results
 
     async def get_contribution_summary(
         self,
         username: str,
-        from_date: Optional[date] = None,
-        to_date: Optional[date] = None,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> dict:
         """Get a summary of contribution statistics.
 

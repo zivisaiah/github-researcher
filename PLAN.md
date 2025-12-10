@@ -734,3 +734,250 @@ tenacity>=8.2.0         # Retry logic with backoff
 - [Contributions on Your Profile](https://docs.github.com/en/account-and-profile/concepts/contributions-on-your-profile)
 - [About Your Profile](https://docs.github.com/articles/about-your-profile)
 - [Viewing Contributions](https://docs.github.com/en/account-and-profile/how-tos/contribution-settings/viewing-contributions-on-your-profile)
+
+---
+
+# SDK Migration Plan
+
+## Goal
+Transform `github-researcher` from a CLI tool into a distributable Python SDK that can be used programmatically by backend services, while maintaining CLI functionality.
+
+---
+
+## 1. Package Distribution Strategy (Private Domain)
+
+### Recommended: GitHub Packages (PyPI-compatible)
+Since this is a private project on GitHub, use **GitHub Packages** as your private PyPI registry:
+
+- **Pros**: Integrated with GitHub, uses existing authentication, free for private repos
+- **Installation**: `pip install github-researcher --index-url https://pypi.pkg.github.com/zivisaiah`
+- **Authentication**: Uses GitHub token (same as repo access)
+
+### Alternative Options:
+| Option | Pros | Cons |
+|--------|------|------|
+| **AWS CodeArtifact** | Enterprise-grade, IAM integration | Extra AWS setup |
+| **Google Artifact Registry** | If already on GCP | Extra GCP setup |
+| **Self-hosted PyPI (pypiserver)** | Full control | Infrastructure overhead |
+| **Direct Git install** | Simplest | No versioning, slower installs |
+
+---
+
+## 2. SDK Interface Design
+
+### Create a High-Level API (`GitHubResearcher` class)
+
+```python
+from github_researcher import GitHubResearcher
+
+# Simple usage
+async with GitHubResearcher(token="ghp_xxx") as client:
+    report = await client.analyze("torvalds")
+
+    # Or use individual methods
+    profile = await client.get_profile("torvalds")
+    repos = await client.get_repos("torvalds")
+    activity = await client.get_activity("torvalds", days=90)
+    contributions = await client.get_contributions("torvalds")
+```
+
+### Export Structure (`__init__.py`)
+```python
+from github_researcher.sdk import GitHubResearcher
+from github_researcher.models import (
+    UserProfile, Repository, ActivityData, ContributionStats, ...
+)
+from github_researcher.config import Config
+from github_researcher.exceptions import (
+    GitHubResearcherError, RateLimitExceededError, ...
+)
+
+__all__ = ["GitHubResearcher", "Config", ...]
+```
+
+---
+
+## 3. Code Changes Required
+
+### 3.1 Remove Console Dependencies from Services
+Currently, services like `ActivityCollector` and `ProfileCollector` have `console.print()` calls. These need to be:
+- Replaced with proper logging (`logging` module)
+- Or removed entirely (SDK should be silent by default)
+
+Files to modify:
+- `services/activity_collector.py` - Remove `rich.console` usage
+- `services/profile_collector.py` - Remove `rich.console` usage
+- `services/repo_collector.py` - Remove `rich.console` usage
+- `services/contribution_collector.py` - Remove `rich.console` usage
+
+### 3.2 Create SDK Entry Point
+New file: `src/github_researcher/sdk.py`
+- `GitHubResearcher` class that wraps all collectors
+- Clean async context manager interface
+- Proper resource cleanup
+
+### 3.3 Create Exceptions Module
+New file: `src/github_researcher/exceptions.py`
+- Consolidate all exceptions
+- `GitHubResearcherError` (base)
+- `RateLimitExceededError`
+- `UserNotFoundError`
+- `AuthenticationError`
+
+### 3.4 Update `__init__.py`
+Export all public API components cleanly.
+
+---
+
+## 4. CI/CD Pipeline
+
+### GitHub Actions Workflow (`.github/workflows/ci.yml`)
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e ".[dev]"
+      - run: pytest
+      - run: bandit -r src/
+```
+
+### GitHub Actions Workflow (`.github/workflows/publish.yml`)
+
+```yaml
+name: Publish
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # For setuptools-scm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install build twine
+      - run: python -m build
+      - name: Publish to GitHub Packages
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          twine upload --repository-url https://upload.pypi.pkg.github.com/zivisaiah dist/*
+```
+
+### Versioning Strategy
+Use **git tags with setuptools-scm** for automatic versioning:
+
+```toml
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
+
+[project]
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+```
+
+Version is derived from git tags:
+- `git tag v0.2.0` → version `0.2.0`
+- Commits after tag → version `0.2.1.dev3+g1234abc`
+
+---
+
+## 5. Installation Methods for Consumers
+
+### From GitHub Packages (recommended for private)
+```bash
+# One-time setup: configure pip
+pip config set global.extra-index-url https://pypi.pkg.github.com/zivisaiah
+
+# Or in pip.conf / requirements.txt header
+--extra-index-url https://__token__:${GITHUB_TOKEN}@pypi.pkg.github.com/zivisaiah
+
+# Install
+pip install github-researcher
+```
+
+### From Git directly (alternative)
+```bash
+pip install git+https://github.com/zivisaiah/github-researcher.git@v0.2.0
+```
+
+### In requirements.txt
+```
+github-researcher @ git+https://github.com/zivisaiah/github-researcher.git@v0.2.0
+```
+
+---
+
+## 6. Implementation Tasks
+
+### Phase 1: SDK Core
+1. Create `src/github_researcher/exceptions.py` - Consolidate exceptions
+2. Create `src/github_researcher/sdk.py` - Main SDK entry point
+3. Replace `console.print()` with `logging` in all services
+4. Update `src/github_researcher/__init__.py` - Clean exports
+
+### Phase 2: CI/CD Setup
+5. Create `.github/workflows/ci.yml` - Test on PR and push
+6. Create `.github/workflows/publish.yml` - Publish to GitHub Packages
+7. Update `pyproject.toml` with setuptools-scm for automatic versioning
+8. Enable GitHub Packages for the repository
+
+### Phase 3: Documentation
+9. Update README with SDK usage examples
+10. Add docstrings to all public API methods
+
+---
+
+## 7. File Structure After Migration
+
+```
+github-researcher/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml          # Test on every PR/push
+│       └── publish.yml     # Publish on main
+├── src/github_researcher/
+│   ├── __init__.py         # Clean public exports
+│   ├── sdk.py              # NEW: GitHubResearcher class
+│   ├── exceptions.py       # NEW: All exceptions
+│   ├── config.py
+│   ├── cli.py              # Unchanged (uses SDK internally)
+│   ├── models/
+│   ├── services/           # Modified: logging instead of console
+│   ├── output/
+│   └── utils/
+├── pyproject.toml          # Updated with setuptools-scm
+└── README.md               # Updated with SDK examples
+```
+
+---
+
+## Decision Points
+
+1. **Package Registry**: GitHub Packages (recommended) vs AWS CodeArtifact vs other?
+2. **Versioning**: Manual vs git-tag-based (setuptools-scm)?
+3. **Logging**: Use Python `logging` module, or allow passing a custom logger?

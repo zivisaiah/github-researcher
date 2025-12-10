@@ -2,7 +2,6 @@
 
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -11,7 +10,7 @@ from dotenv import load_dotenv
 class Config:
     """Application configuration."""
 
-    github_token: Optional[str]
+    github_token: str | None
     github_api_url: str = "https://api.github.com"
     github_graphql_url: str = "https://api.github.com/graphql"
 
@@ -41,9 +40,7 @@ class Config:
         return cls(
             github_token=token,
             github_api_url=os.getenv("GITHUB_API_URL", "https://api.github.com"),
-            github_graphql_url=os.getenv(
-                "GITHUB_GRAPHQL_URL", "https://api.github.com/graphql"
-            ),
+            github_graphql_url=os.getenv("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql"),
         )
 
     @property
@@ -58,7 +55,7 @@ class Config:
 
 
 # Global config instance
-_config: Optional[Config] = None
+_config: Config | None = None
 
 
 def get_config() -> Config:

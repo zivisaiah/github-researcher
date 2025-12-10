@@ -1,7 +1,7 @@
 """Contribution calendar and statistics models."""
 
 from datetime import date
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -32,10 +32,7 @@ class ContributionWeek(BaseModel):
     @classmethod
     def from_graphql(cls, data: dict[str, Any]) -> "ContributionWeek":
         """Create from GraphQL response."""
-        days = [
-            ContributionDay.from_graphql(day)
-            for day in data.get("contributionDays", [])
-        ]
+        days = [ContributionDay.from_graphql(day) for day in data.get("contributionDays", [])]
         return cls(days=days)
 
 
@@ -48,16 +45,13 @@ class ContributionCalendar(BaseModel):
     @classmethod
     def from_graphql(cls, data: dict[str, Any]) -> "ContributionCalendar":
         """Create from GraphQL response."""
-        weeks = [
-            ContributionWeek.from_graphql(week)
-            for week in data.get("weeks", [])
-        ]
+        weeks = [ContributionWeek.from_graphql(week) for week in data.get("weeks", [])]
         return cls(
             total_contributions=data.get("totalContributions", 0),
             weeks=weeks,
         )
 
-    def get_busiest_day(self) -> Optional[ContributionDay]:
+    def get_busiest_day(self) -> ContributionDay | None:
         """Find the day with most contributions."""
         busiest = None
         for week in self.weeks:
@@ -143,6 +137,6 @@ class ContributionStats(BaseModel):
         return self.calendar.get_longest_streak()
 
     @property
-    def busiest_day(self) -> Optional[ContributionDay]:
+    def busiest_day(self) -> ContributionDay | None:
         """Day with most contributions."""
         return self.calendar.get_busiest_day()

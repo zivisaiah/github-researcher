@@ -3,7 +3,7 @@
 import json
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -19,7 +19,7 @@ class AnalysisReport(BaseModel):
     username: str
     generated_at: datetime
     analysis_mode: str  # "quick" or "deep"
-    period: dict[str, Optional[str]]  # {"from": "...", "to": "..."}
+    period: dict[str, str | None]  # {"from": "...", "to": "..."}
     profile: dict[str, Any]
     social: dict[str, Any]
     repositories: dict[str, Any]
@@ -49,12 +49,12 @@ def build_report(
     username: str,
     user_data: FullUserData,
     repos: RepositorySummary,
-    contributions: Optional[ContributionStats],
+    contributions: ContributionStats | None,
     activity: ActivityData,
     activity_summary: ActivitySummary,
     mode: str = "deep",
-    from_date: Optional[date] = None,
-    to_date: Optional[date] = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
 ) -> dict[str, Any]:
     """Build a complete analysis report.
 
@@ -80,8 +80,7 @@ def build_report(
         "followers_count": user_data.social.followers_count,
         "following_count": user_data.social.following_count,
         "organizations": [
-            {"login": org.login, "name": org.name}
-            for org in user_data.social.organizations
+            {"login": org.login, "name": org.name} for org in user_data.social.organizations
         ],
     }
 
@@ -91,9 +90,7 @@ def build_report(
         "total_stars": repos.total_stars,
         "total_forks": repos.total_forks,
         "languages": repos.languages.percentages,
-        "top_topics": dict(
-            sorted(repos.topics.items(), key=lambda x: x[1], reverse=True)[:10]
-        ),
+        "top_topics": dict(sorted(repos.topics.items(), key=lambda x: x[1], reverse=True)[:10]),
         "repos": [
             {
                 "name": r.full_name,
@@ -128,9 +125,7 @@ def build_report(
             "calendar": serialize_for_json(contributions.calendar.model_dump()),
         }
     else:
-        contributions_data = {
-            "note": "Contribution data requires GitHub token for GraphQL API"
-        }
+        contributions_data = {"note": "Contribution data requires GitHub token for GraphQL API"}
 
     # Activity section (truncated for JSON size)
     activity_data = {
@@ -209,8 +204,8 @@ def build_report(
 
 def write_json_report(
     report: dict[str, Any],
-    output_path: Optional[Path] = None,
-    username: Optional[str] = None,
+    output_path: Path | None = None,
+    username: str | None = None,
 ) -> Path:
     """Write analysis report to JSON file.
 

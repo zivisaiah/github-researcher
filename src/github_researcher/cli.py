@@ -3,7 +3,6 @@
 import asyncio
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -47,18 +46,18 @@ def main(
 @app.command()
 def analyze(
     username: str = typer.Argument(..., help="GitHub username to analyze"),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         "--output",
         "-o",
         help="Output JSON file path",
     ),
-    since: Optional[str] = typer.Option(
+    since: str | None = typer.Option(
         None,
         "--since",
         help="Start date for analysis (YYYY-MM-DD)",
     ),
-    until: Optional[str] = typer.Option(
+    until: str | None = typer.Option(
         None,
         "--until",
         help="End date for analysis (YYYY-MM-DD)",
@@ -155,19 +154,21 @@ def analyze(
     except Exception as e:
         # Import here to avoid circular imports
         from github_researcher.utils.rate_limiter import RateLimitExceededError
+
         if isinstance(e, RateLimitExceededError):
             # Message already printed by check_and_report_rate_limit or _acquire
             raise typer.Exit(1)
         console.print(f"[red]Error: {e}[/red]")
         if verbose:
             import traceback
+
             traceback.print_exc()
         raise typer.Exit(1)
 
 
 async def _run_analysis(
     username: str,
-    output_path: Optional[Path],
+    output_path: Path | None,
     from_date: date,
     to_date: date,
     deep: bool,
@@ -177,19 +178,17 @@ async def _run_analysis(
     quiet: bool,
 ):
     """Run the analysis asynchronously."""
-    from github_researcher.services.github_rest_client import GitHubRestClient
+    from github_researcher.services.activity_collector import ActivityCollector
+    from github_researcher.services.contribution_collector import ContributionCollector
     from github_researcher.services.github_graphql_client import GitHubGraphQLClient
+    from github_researcher.services.github_rest_client import GitHubRestClient
     from github_researcher.services.profile_collector import ProfileCollector
     from github_researcher.services.repo_collector import RepoCollector
-    from github_researcher.services.contribution_collector import ContributionCollector
-    from github_researcher.services.activity_collector import ActivityCollector
-    from github_researcher.models.activity import ActivityData, ActivitySummary
-    from github_researcher.models.contribution import ContributionStats
     from github_researcher.utils.rate_limiter import (
-        get_rate_limiter,
-        check_rate_limit_from_api,
-        check_and_report_rate_limit,
         RateLimitExceededError,
+        check_and_report_rate_limit,
+        check_rate_limit_from_api,
+        get_rate_limiter,
     )
 
     output_console = OutputConsole(verbose=verbose, quiet=quiet)
@@ -224,7 +223,9 @@ async def _run_analysis(
         # Initialize collectors
         profile_collector = ProfileCollector(rest_client, graphql_client)
         repo_collector = RepoCollector(rest_client, graphql_client)
-        activity_collector = ActivityCollector(rest_client, is_authenticated=config.is_authenticated)
+        activity_collector = ActivityCollector(
+            rest_client, is_authenticated=config.is_authenticated
+        )
 
         contribution_collector = None
         if graphql_client:

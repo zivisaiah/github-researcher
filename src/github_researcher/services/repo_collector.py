@@ -1,10 +1,7 @@
 """Repository collector service."""
 
 import asyncio
-from typing import Optional
-
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+import logging
 
 from github_researcher.models.repository import (
     PinnedRepository,
@@ -14,7 +11,7 @@ from github_researcher.models.repository import (
 from github_researcher.services.github_graphql_client import GitHubGraphQLClient
 from github_researcher.services.github_rest_client import GitHubRestClient
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 
 class RepoCollector:
@@ -23,7 +20,7 @@ class RepoCollector:
     def __init__(
         self,
         rest_client: GitHubRestClient,
-        graphql_client: Optional[GitHubGraphQLClient] = None,
+        graphql_client: GitHubGraphQLClient | None = None,
     ):
         self.rest_client = rest_client
         self.graphql_client = graphql_client
@@ -44,13 +41,13 @@ class RepoCollector:
         Returns:
             RepositorySummary with all repos and aggregated statistics
         """
-        console.print(f"[dim]Fetching repositories for {username}...[/dim]")
+        logger.debug("Fetching repositories for %s", username)
 
         # Fetch all public repos
         repos_data = await self.rest_client.get_user_repos(username)
         repos = [Repository.from_api(r) for r in repos_data]
 
-        console.print(f"[dim]Found {len(repos)} public repositories[/dim]")
+        logger.debug("Found %d public repositories", len(repos))
 
         # Optionally fetch language breakdown
         repo_languages: dict[str, dict[str, int]] = {}
@@ -64,9 +61,7 @@ class RepoCollector:
             )
             repos_for_languages = sorted_repos[:max_repos_for_languages]
 
-            console.print(
-                f"[dim]Fetching language breakdown for {len(repos_for_languages)} repos...[/dim]"
-            )
+            logger.debug("Fetching language breakdown for %d repos", len(repos_for_languages))
 
             # Fetch languages concurrently in batches
             batch_size = 10
@@ -86,9 +81,7 @@ class RepoCollector:
 
         return RepositorySummary.from_repos(repos, repo_languages)
 
-    async def _fetch_repo_languages(
-        self, owner: str, repo: str
-    ) -> dict[str, int]:
+    async def _fetch_repo_languages(self, owner: str, repo: str) -> dict[str, int]:
         """Fetch language breakdown for a repository."""
         try:
             return await self.rest_client.get_repo_languages(owner, repo)
@@ -105,18 +98,16 @@ class RepoCollector:
             List of pinned repositories
         """
         if not self.graphql_client:
-            console.print(
-                "[yellow]GraphQL client not available, skipping pinned repos[/yellow]"
-            )
+            logger.info("GraphQL client not available, skipping pinned repos")
             return []
 
-        console.print(f"[dim]Fetching pinned repositories for {username}...[/dim]")
+        logger.debug("Fetching pinned repositories for %s", username)
 
         try:
             pinned_data = await self.graphql_client.get_pinned_repos(username)
             return [PinnedRepository.from_graphql(r) for r in pinned_data]
         except Exception as e:
-            console.print(f"[yellow]Failed to fetch pinned repos: {e}[/yellow]")
+            logger.warning("Failed to fetch pinned repos: %s", e)
             return []
 
     async def collect_contributed_repos(
@@ -136,7 +127,7 @@ class RepoCollector:
         Returns:
             List of repository full names (owner/repo)
         """
-        console.print(f"[dim]Searching for contributed repositories...[/dim]")
+        logger.debug("Searching for contributed repositories")
 
         try:
             # Search for merged PRs by user
@@ -158,5 +149,5 @@ class RepoCollector:
 
             return list(repos)
         except Exception as e:
-            console.print(f"[yellow]Failed to search contributed repos: {e}[/yellow]")
+            logger.warning("Failed to search contributed repos: %s", e)
             return []

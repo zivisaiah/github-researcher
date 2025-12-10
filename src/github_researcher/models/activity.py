@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -67,7 +67,7 @@ class Commit(BaseModel):
     sha: str
     message: str
     author: str
-    author_email: Optional[str] = None
+    author_email: str | None = None
     date: datetime
     repo: str
     url: str = ""
@@ -112,9 +112,9 @@ class PullRequest(BaseModel):
     author: str
     repo: str
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    closed_at: Optional[datetime] = None
-    merged_at: Optional[datetime] = None
+    updated_at: datetime | None = None
+    closed_at: datetime | None = None
+    merged_at: datetime | None = None
     url: str = ""
     additions: int = 0
     deletions: int = 0
@@ -160,8 +160,8 @@ class Issue(BaseModel):
     author: str
     repo: str
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    closed_at: Optional[datetime] = None
+    updated_at: datetime | None = None
+    closed_at: datetime | None = None
     url: str = ""
     labels: list[str] = Field(default_factory=list)
     comments: int = 0
@@ -288,7 +288,7 @@ class ActivitySummary(BaseModel):
         )
 
 
-def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+def _parse_datetime(value: str | None) -> datetime | None:
     """Parse ISO datetime string."""
     if not value:
         return None
