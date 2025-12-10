@@ -1,20 +1,29 @@
 #!/usr/bin/env python3
 """CLI utility to test the GitHub Researcher SDK locally."""
 
+from __future__ import annotations
+
 import argparse
 import asyncio
 import json
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING, Any
 
 # Add src to path for local development
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from github_researcher import GitHubResearcher, __version__
 
+if TYPE_CHECKING:
+    from github_researcher.models.activity import ActivityData
+    from github_researcher.models.contribution import ContributionStats
+    from github_researcher.models.repository import RepositorySummary
+    from github_researcher.models.user import FullUserData
 
-def setup_logging(verbose: bool = False, debug: bool = False):
+
+def setup_logging(verbose: bool = False, debug: bool = False) -> None:
     """Configure logging based on verbosity level."""
     if debug:
         level = logging.DEBUG
@@ -29,7 +38,7 @@ def setup_logging(verbose: bool = False, debug: bool = False):
     )
 
 
-async def test_profile(client: GitHubResearcher, username: str):
+async def test_profile(client: GitHubResearcher, username: str) -> FullUserData:
     """Test get_profile method."""
     print(f"\n{'='*50}")
     print(f"Testing get_profile('{username}')")
@@ -47,7 +56,7 @@ async def test_profile(client: GitHubResearcher, username: str):
     return profile
 
 
-async def test_repos(client: GitHubResearcher, username: str):
+async def test_repos(client: GitHubResearcher, username: str) -> RepositorySummary:
     """Test get_repos method."""
     print(f"\n{'='*50}")
     print(f"Testing get_repos('{username}')")
@@ -58,13 +67,13 @@ async def test_repos(client: GitHubResearcher, username: str):
     print(f"Total stars: {repos.total_stars}")
     print(f"Total forks: {repos.total_forks}")
     print(f"Top languages: {dict(list(repos.languages.languages.items())[:5])}")
-    print(f"Top repos by stars:")
+    print("Top repos by stars:")
     for repo in sorted(repos.repos, key=lambda r: r.stargazers_count, reverse=True)[:5]:
         print(f"  - {repo.name}: {repo.stargazers_count} stars")
     return repos
 
 
-async def test_activity(client: GitHubResearcher, username: str, days: int = 90):
+async def test_activity(client: GitHubResearcher, username: str, days: int = 90) -> ActivityData:
     """Test get_activity method."""
     print(f"\n{'='*50}")
     print(f"Testing get_activity('{username}', days={days})")
@@ -82,7 +91,9 @@ async def test_activity(client: GitHubResearcher, username: str, days: int = 90)
     return activity
 
 
-async def test_contributions(client: GitHubResearcher, username: str):
+async def test_contributions(
+    client: GitHubResearcher, username: str
+) -> ContributionStats | None:
     """Test get_contributions method."""
     print(f"\n{'='*50}")
     print(f"Testing get_contributions('{username}')")
@@ -109,7 +120,9 @@ async def test_contributions(client: GitHubResearcher, username: str):
     return contributions
 
 
-async def test_full_analysis(client: GitHubResearcher, username: str, days: int = 90):
+async def test_full_analysis(
+    client: GitHubResearcher, username: str, days: int = 90
+) -> dict[str, Any]:
     """Test the full analyze method."""
     print(f"\n{'='*50}")
     print(f"Testing analyze('{username}', days={days})")
@@ -135,7 +148,7 @@ async def test_full_analysis(client: GitHubResearcher, username: str, days: int 
     return report
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Test the GitHub Researcher SDK locally",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -240,10 +253,10 @@ Examples:
                         json.dump(output, f, indent=2, default=str)
                     print(f"\nReport saved to: {args.output}")
 
-            print("\n✓ All tests completed successfully!")
+            print("\nAll tests completed successfully!")
 
         except Exception as e:
-            print(f"\n✗ Error: {e}")
+            print(f"\nError: {e}")
             if args.debug:
                 import traceback
                 traceback.print_exc()

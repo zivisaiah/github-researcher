@@ -21,6 +21,9 @@ from github_researcher.services.profile_collector import ProfileCollector
 from github_researcher.services.repo_collector import RepoCollector
 from github_researcher.utils.rate_limiter import RateLimiter, get_rate_limiter
 
+# Default number of user repos to search for commits in activity collection
+DEFAULT_MAX_REPOS_FOR_ACTIVITY = 20
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,8 +114,10 @@ class GitHubResearcher:
         """Close all HTTP connections."""
         if self._rest_client:
             await self._rest_client.close()
+            self._rest_client = None
         if self._graphql_client:
             await self._graphql_client.close()
+            self._graphql_client = None
         self._initialized = False
         logger.debug("GitHubResearcher closed")
 
@@ -267,7 +272,7 @@ class GitHubResearcher:
 
         # Get repos first for commit search
         repos = await self.get_repos(username, include_languages=False)
-        user_repos = [r.full_name for r in repos.repos[:20]]
+        user_repos = [r.full_name for r in repos.repos[:DEFAULT_MAX_REPOS_FOR_ACTIVITY]]
 
         activity = await self.get_activity(
             username,
@@ -319,7 +324,7 @@ class GitHubResearcher:
 
         # Collect repos
         repos = await self.get_repos(username)
-        user_repos = [r.full_name for r in repos.repos[:20]]
+        user_repos = [r.full_name for r in repos.repos[:DEFAULT_MAX_REPOS_FOR_ACTIVITY]]
 
         # Collect contributions (if authenticated)
         contributions = None

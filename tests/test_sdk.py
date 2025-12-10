@@ -393,15 +393,19 @@ class TestGitHubResearcherClose:
         client = GitHubResearcher(token="ghp_test")
         await client._initialize()
 
-        # Mock the close methods
-        client._rest_client.close = AsyncMock()
-        client._graphql_client.close = AsyncMock()
+        # Mock the close methods and keep references before close sets them to None
+        rest_close_mock = AsyncMock()
+        graphql_close_mock = AsyncMock()
+        client._rest_client.close = rest_close_mock
+        client._graphql_client.close = graphql_close_mock
 
         await client.close()
 
-        client._rest_client.close.assert_called_once()
-        client._graphql_client.close.assert_called_once()
+        rest_close_mock.assert_called_once()
+        graphql_close_mock.assert_called_once()
         assert client._initialized is False
+        assert client._rest_client is None
+        assert client._graphql_client is None
 
     @pytest.mark.asyncio
     async def test_double_close_is_safe(self):
