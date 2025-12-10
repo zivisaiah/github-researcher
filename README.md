@@ -48,14 +48,14 @@ async def main():
     async with GitHubResearcher(token="ghp_xxx") as client:
         # Full analysis
         report = await client.analyze("torvalds")
-        print(f"Total commits: {report['activity_summary'].commits}")
+        print(f"Total commits: {report['activity_summary'].total_commits}")
 
         # Or use individual methods
         profile = await client.get_profile("torvalds")
         print(f"Name: {profile.profile.name}")
 
         repos = await client.get_repos("torvalds")
-        print(f"Public repos: {repos.total_count}")
+        print(f"Public repos: {repos.count}")
 
         # Activity (last 90 days from Events API, full history with auth)
         activity = await client.get_activity("torvalds", days=365)

@@ -109,13 +109,17 @@ class TestSDKGetActivity:
         assert activity.reviews is not None
 
     @pytest.mark.asyncio
-    @my_vcr.use_cassette("get_activity_with_deep_search.yaml")
     async def test_get_activity_with_deep_search(self):
-        """Test getting activity with deep search enabled (requires auth)."""
+        """Test getting activity with deep search enabled (requires auth).
+
+        Note: This test is skipped in CI as it requires authentication.
+        Deep search uses the Search API which requires a token.
+        """
         token = get_test_token()
         if not token:
             pytest.skip("Deep search requires authentication")
 
+        # This test only runs locally with a token - no cassette needed
         async with GitHubResearcher(token=token) as client:
             activity = await client.get_activity("octocat", days=30, deep=True)
 
@@ -128,13 +132,17 @@ class TestSDKGetContributions:
     """Integration tests for get_contributions method."""
 
     @pytest.mark.asyncio
-    @my_vcr.use_cassette("get_contributions_octocat.yaml")
     async def test_get_contributions_authenticated(self):
-        """Test getting contributions (requires authentication)."""
+        """Test getting contributions (requires authentication).
+
+        Note: This test is skipped in CI as it requires authentication.
+        Contributions use the GraphQL API which requires a token.
+        """
         token = get_test_token()
         if not token:
             pytest.skip("Contributions require authentication")
 
+        # This test only runs locally with a token - no cassette needed
         async with GitHubResearcher(token=token) as client:
             contributions = await client.get_contributions("octocat")
 
@@ -207,13 +215,16 @@ class TestSDKAuthenticationModes:
     """Tests for authenticated vs unauthenticated behavior."""
 
     @pytest.mark.asyncio
-    @my_vcr.use_cassette("authenticated_mode.yaml")
     async def test_authenticated_mode(self):
-        """Test SDK in authenticated mode."""
+        """Test SDK in authenticated mode.
+
+        Note: This test is skipped in CI as it requires authentication.
+        """
         token = get_test_token()
         if not token:
             pytest.skip("Test requires authentication")
 
+        # This test only runs locally with a token - no cassette needed
         async with GitHubResearcher(token=token) as client:
             assert client.is_authenticated is True
             assert client._graphql_client is not None
