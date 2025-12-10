@@ -24,8 +24,10 @@ def reset_globals():
 @pytest.fixture
 def test_config():
     """Create a test configuration."""
+    # Support both GITHUB_RESEARCHER_TOKEN (preferred) and GITHUB_TOKEN (fallback)
+    token = os.getenv("GITHUB_RESEARCHER_TOKEN") or os.getenv("GITHUB_TOKEN", "test_token")
     config = Config(
-        github_token=os.getenv("GITHUB_TOKEN", "test_token"),
+        github_token=token,
         github_api_url="https://api.github.com",
         github_graphql_url="https://api.github.com/graphql",
     )

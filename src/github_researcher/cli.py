@@ -153,6 +153,11 @@ def analyze(
         console.print("\n[yellow]Analysis cancelled[/yellow]")
         raise typer.Exit(1)
     except Exception as e:
+        # Import here to avoid circular imports
+        from github_researcher.utils.rate_limiter import RateLimitExceededError
+        if isinstance(e, RateLimitExceededError):
+            # Message already printed by check_and_report_rate_limit or _acquire
+            raise typer.Exit(1)
         console.print(f"[red]Error: {e}[/red]")
         if verbose:
             import traceback
@@ -180,7 +185,12 @@ async def _run_analysis(
     from github_researcher.services.activity_collector import ActivityCollector
     from github_researcher.models.activity import ActivityData, ActivitySummary
     from github_researcher.models.contribution import ContributionStats
-    from github_researcher.utils.rate_limiter import get_rate_limiter
+    from github_researcher.utils.rate_limiter import (
+        get_rate_limiter,
+        check_rate_limit_from_api,
+        check_and_report_rate_limit,
+        RateLimitExceededError,
+    )
 
     output_console = OutputConsole(verbose=verbose, quiet=quiet)
     config = get_config()
@@ -190,9 +200,17 @@ async def _run_analysis(
     if not config.is_authenticated:
         output_console.print_warning(
             "No GitHub token found. Using unauthenticated access (60 requests/hour).\n"
-            "Set GITHUB_TOKEN environment variable for higher rate limits and contribution data."
+            "Set GITHUB_RESEARCHER_TOKEN environment variable for higher rate limits and contribution data."
         )
         output_console.print()
+
+    # Check rate limit before starting
+    rate_info = await check_rate_limit_from_api(
+        api_url=config.github_api_url,
+        token=config.github_token,
+    )
+    if not check_and_report_rate_limit(rate_info, config.is_authenticated):
+        raise RateLimitExceededError("Rate limit exhausted before starting")
 
     # Initialize clients
     rate_limiter = get_rate_limiter()
@@ -206,7 +224,7 @@ async def _run_analysis(
         # Initialize collectors
         profile_collector = ProfileCollector(rest_client, graphql_client)
         repo_collector = RepoCollector(rest_client, graphql_client)
-        activity_collector = ActivityCollector(rest_client)
+        activity_collector = ActivityCollector(rest_client, is_authenticated=config.is_authenticated)
 
         contribution_collector = None
         if graphql_client:
@@ -316,7 +334,7 @@ def check_token():
         console.print("Search API: Limited")
         console.print()
         console.print("To configure a token:")
-        console.print("  export GITHUB_TOKEN=your_token_here")
+        console.print("  export GITHUB_RESEARCHER_TOKEN=your_token_here")
         console.print()
         console.print("Create a token at: https://github.com/settings/tokens")
         console.print("No special scopes needed for public data access.")

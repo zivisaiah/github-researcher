@@ -22,8 +22,9 @@ console = Console()
 class ActivityCollector:
     """Collects activity data from Events API and Search API."""
 
-    def __init__(self, rest_client: GitHubRestClient):
+    def __init__(self, rest_client: GitHubRestClient, is_authenticated: bool = False):
         self.rest_client = rest_client
+        self.is_authenticated = is_authenticated
 
     async def collect_events(
         self,
@@ -302,14 +303,23 @@ class ActivityCollector:
                 commits=commits_from_events,
             )
 
-        # Deep mode - use Search API for full history
-        prs_task = self.collect_prs(username, since, until)
-        issues_task = self.collect_issues(username, since, until)
-        reviews_task = self.collect_reviews(username, since, until)
+        # Deep mode - use Search API for full history (requires authentication)
+        prs = []
+        issues = []
+        reviews = []
 
-        prs, issues, reviews = await asyncio.gather(
-            prs_task, issues_task, reviews_task
-        )
+        if self.is_authenticated:
+            prs_task = self.collect_prs(username, since, until)
+            issues_task = self.collect_issues(username, since, until)
+            reviews_task = self.collect_reviews(username, since, until)
+
+            prs, issues, reviews = await asyncio.gather(
+                prs_task, issues_task, reviews_task
+            )
+        else:
+            console.print(
+                "[yellow]Skipping PR/Issue/Review search (requires authentication)[/yellow]"
+            )
 
         # Collect commits from user's repos if provided
         commits = commits_from_events

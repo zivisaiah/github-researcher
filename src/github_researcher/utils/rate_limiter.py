@@ -3,11 +3,51 @@
 import asyncio
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional
 
+import httpx
 from rich.console import Console
 
 console = Console()
+
+# Threshold for warning about low remaining requests
+LOW_REMAINING_THRESHOLD = 10
+
+
+def format_time_remaining(seconds: float) -> str:
+    """Format seconds into a human-friendly string."""
+    if seconds <= 0:
+        return "now"
+
+    seconds = int(seconds)
+
+    if seconds < 60:
+        return f"{seconds} second{'s' if seconds != 1 else ''}"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        remaining_secs = seconds % 60
+        if remaining_secs > 0:
+            return f"{minutes} min {remaining_secs} sec"
+        return f"{minutes} minute{'s' if minutes != 1 else ''}"
+    else:
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        if minutes > 0:
+            return f"{hours} hr {minutes} min"
+        return f"{hours} hour{'s' if hours != 1 else ''}"
+
+
+def format_reset_time(reset_timestamp: float) -> str:
+    """Format reset timestamp to a human-readable local time."""
+    reset_dt = datetime.fromtimestamp(reset_timestamp)
+    return reset_dt.strftime("%H:%M:%S")
+
+
+class RateLimitExceededError(Exception):
+    """Raised when rate limit is exceeded and we don't want to wait."""
+
+    pass
 
 
 @dataclass
@@ -86,14 +126,22 @@ class RateLimiter:
             if state.remaining < cost:
                 wait_time = state.seconds_until_reset
                 if wait_time > 0:
+                    human_time = format_time_remaining(wait_time)
+                    reset_at = format_reset_time(state.reset_time)
+                    console.print()
                     console.print(
-                        f"[yellow]Rate limit reached for {api_name} API. "
-                        f"Waiting {wait_time:.1f}s until reset...[/yellow]"
+                        f"[red]Rate limit exceeded[/red] for {api_name} API."
                     )
-                    await asyncio.sleep(wait_time + 1)  # Add 1s buffer
-                    # Reset the state after waiting
-                    state.remaining = state.limit
-                    state.reset_time = time.time() + state.window_seconds
+                    console.print(
+                        f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]"
+                    )
+                    console.print(
+                        "[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
+                    )
+                    console.print()
+                    raise RateLimitExceededError(
+                        f"Rate limit exceeded. Resets in {human_time} (at {reset_at})"
+                    )
 
             # Deduct the cost
             state.remaining -= cost
@@ -147,3 +195,96 @@ def reset_rate_limiter() -> None:
     """Reset the global rate limiter (useful for testing)."""
     global _rate_limiter
     _rate_limiter = None
+
+
+async def check_rate_limit_from_api(
+    api_url: str = "https://api.github.com",
+    token: Optional[str] = None,
+) -> dict:
+    """Check current rate limit status from GitHub API.
+
+    Args:
+        api_url: GitHub API base URL
+        token: Optional GitHub token for authentication
+
+    Returns:
+        Dict with rate limit info including remaining and reset time
+    """
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "github-researcher/0.1.0",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{api_url}/rate_limit", headers=headers)
+
+            if response.status_code == 200:
+                data = response.json()
+                core = data.get("resources", {}).get("core", {})
+                search = data.get("resources", {}).get("search", {})
+
+                return {
+                    "core": {
+                        "limit": core.get("limit", 60),
+                        "remaining": core.get("remaining", 0),
+                        "reset": core.get("reset", time.time() + 3600),
+                    },
+                    "search": {
+                        "limit": search.get("limit", 10),
+                        "remaining": search.get("remaining", 0),
+                        "reset": search.get("reset", time.time() + 60),
+                    },
+                }
+    except httpx.HTTPError as e:
+        console.print(f"[dim]Could not check rate limit (HTTP error): {e}[/dim]")
+    except httpx.TimeoutException as e:
+        console.print(f"[dim]Could not check rate limit (timeout): {e}[/dim]")
+
+    # Return defaults if we can't check
+    return {
+        "core": {"limit": 60, "remaining": 60, "reset": time.time() + 3600},
+        "search": {"limit": 10, "remaining": 10, "reset": time.time() + 60},
+    }
+
+
+def check_and_report_rate_limit(rate_info: dict, is_authenticated: bool) -> bool:
+    """Check rate limit and report status to user.
+
+    Args:
+        rate_info: Rate limit info from check_rate_limit_from_api()
+        is_authenticated: Whether using authenticated access
+
+    Returns:
+        True if OK to proceed, False if rate limit exhausted
+    """
+    core = rate_info["core"]
+    remaining = core["remaining"]
+    limit = core["limit"]
+    reset_time = core["reset"]
+
+    if remaining == 0:
+        human_time = format_time_remaining(reset_time - time.time())
+        reset_at = format_reset_time(reset_time)
+
+        console.print()
+        console.print(f"[red]Rate limit exhausted[/red] (0/{limit} requests remaining)")
+        console.print(f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]")
+
+        if not is_authenticated:
+            console.print(
+                "[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
+            )
+
+        console.print()
+        return False
+
+    # Show warning if running low
+    if remaining < LOW_REMAINING_THRESHOLD:
+        console.print(
+            f"[yellow]Warning: Only {remaining}/{limit} API requests remaining[/yellow]"
+        )
+
+    return True
