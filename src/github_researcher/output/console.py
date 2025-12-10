@@ -1,13 +1,11 @@
 """Rich console output for analysis results."""
 
-from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from rich.console import Console as RichConsole
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskProgressColumn, TextColumn
 from rich.table import Table
-from rich.text import Text
 
 
 class Console:

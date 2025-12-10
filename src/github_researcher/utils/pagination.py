@@ -1,11 +1,10 @@
 """Pagination utilities for GitHub API."""
 
 import re
-from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 
-def parse_link_header(link_header: Optional[str]) -> dict[str, str]:
+def parse_link_header(link_header: str | None) -> dict[str, str]:
     """Parse GitHub's Link header into a dictionary of rel -> url.
 
     Example Link header:
@@ -29,13 +28,13 @@ def parse_link_header(link_header: Optional[str]) -> dict[str, str]:
     return links
 
 
-def get_next_page_url(link_header: Optional[str]) -> Optional[str]:
+def get_next_page_url(link_header: str | None) -> str | None:
     """Extract the 'next' page URL from a Link header."""
     links = parse_link_header(link_header)
     return links.get("next")
 
 
-def get_total_pages(link_header: Optional[str]) -> Optional[int]:
+def get_total_pages(link_header: str | None) -> int | None:
     """Extract total pages from the 'last' link in a Link header."""
     links = parse_link_header(link_header)
     last_url = links.get("last")

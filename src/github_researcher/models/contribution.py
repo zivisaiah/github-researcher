@@ -1,7 +1,7 @@
 """Contribution calendar and statistics models."""
 
 from datetime import date
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -57,7 +57,7 @@ class ContributionCalendar(BaseModel):
             weeks=weeks,
         )
 
-    def get_busiest_day(self) -> Optional[ContributionDay]:
+    def get_busiest_day(self) -> ContributionDay | None:
         """Find the day with most contributions."""
         busiest = None
         for week in self.weeks:
@@ -143,6 +143,6 @@ class ContributionStats(BaseModel):
         return self.calendar.get_longest_streak()
 
     @property
-    def busiest_day(self) -> Optional[ContributionDay]:
+    def busiest_day(self) -> ContributionDay | None:
         """Day with most contributions."""
         return self.calendar.get_busiest_day()

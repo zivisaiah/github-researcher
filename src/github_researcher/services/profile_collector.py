@@ -1,10 +1,9 @@
 """Profile and social data collector service."""
 
 import asyncio
-from typing import Optional
+import logging
 
-from rich.console import Console
-
+from github_researcher.exceptions import GitHubNotFoundError
 from github_researcher.models.user import (
     FullUserData,
     Organization,
@@ -12,12 +11,9 @@ from github_researcher.models.user import (
     UserProfile,
 )
 from github_researcher.services.github_graphql_client import GitHubGraphQLClient
-from github_researcher.services.github_rest_client import (
-    GitHubNotFoundError,
-    GitHubRestClient,
-)
+from github_researcher.services.github_rest_client import GitHubRestClient
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 
 class ProfileCollector:
@@ -26,7 +22,7 @@ class ProfileCollector:
     def __init__(
         self,
         rest_client: GitHubRestClient,
-        graphql_client: Optional[GitHubGraphQLClient] = None,
+        graphql_client: GitHubGraphQLClient | None = None,
     ):
         self.rest_client = rest_client
         self.graphql_client = graphql_client
@@ -40,7 +36,7 @@ class ProfileCollector:
         Returns:
             UserProfile with all available data
         """
-        console.print(f"[dim]Fetching profile for {username}...[/dim]")
+        logger.debug("Fetching profile for %s", username)
 
         try:
             data = await self.rest_client.get_user(username)
@@ -68,7 +64,7 @@ class ProfileCollector:
         Returns:
             SocialData with followers, following, and organizations
         """
-        console.print(f"[dim]Fetching social data for {username}...[/dim]")
+        logger.debug("Fetching social data for %s", username)
 
         # Fetch orgs always
         orgs = await self.rest_client.get_user_orgs(username)

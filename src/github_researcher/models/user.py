@@ -1,7 +1,7 @@
 """User profile and social data models."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -10,8 +10,8 @@ class Organization(BaseModel):
     """GitHub organization."""
 
     login: str
-    name: Optional[str] = None
-    avatar_url: Optional[str] = None
+    name: str | None = None
+    avatar_url: str | None = None
 
     @classmethod
     def from_api(cls, data: dict[str, Any]) -> "Organization":
@@ -27,20 +27,20 @@ class UserProfile(BaseModel):
     """GitHub user profile data."""
 
     username: str
-    name: Optional[str] = None
+    name: str | None = None
     avatar_url: str = ""
-    bio: Optional[str] = None
-    company: Optional[str] = None
-    location: Optional[str] = None
-    email: Optional[str] = None
-    blog: Optional[str] = None
-    twitter_username: Optional[str] = None
+    bio: str | None = None
+    company: str | None = None
+    location: str | None = None
+    email: str | None = None
+    blog: str | None = None
+    twitter_username: str | None = None
     public_repos: int = 0
     public_gists: int = 0
     followers: int = 0
     following: int = 0
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     @classmethod
     def from_api(cls, data: dict[str, Any]) -> "UserProfile":
@@ -118,7 +118,7 @@ class FullUserData(BaseModel):
     social: SocialData
 
 
-def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+def _parse_datetime(value: str | None) -> datetime | None:
     """Parse ISO datetime string."""
     if not value:
         return None

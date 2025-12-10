@@ -1,7 +1,7 @@
 """GitHub REST API client."""
 
 import asyncio
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from tenacity import (
@@ -12,29 +12,13 @@ from tenacity import (
 )
 
 from github_researcher.config import Config, get_config
+from github_researcher.exceptions import (
+    GitHubAPIError,
+    GitHubNotFoundError,
+    GitHubRateLimitError,
+)
 from github_researcher.utils.pagination import get_next_page_url
 from github_researcher.utils.rate_limiter import RateLimiter, get_rate_limiter
-
-
-class GitHubAPIError(Exception):
-    """Base exception for GitHub API errors."""
-
-    def __init__(self, message: str, status_code: int, response_body: Optional[dict] = None):
-        super().__init__(message)
-        self.status_code = status_code
-        self.response_body = response_body
-
-
-class GitHubRateLimitError(GitHubAPIError):
-    """Raised when rate limit is exceeded."""
-
-    pass
-
-
-class GitHubNotFoundError(GitHubAPIError):
-    """Raised when a resource is not found."""
-
-    pass
 
 
 class GitHubRestClient:
@@ -42,12 +26,12 @@ class GitHubRestClient:
 
     def __init__(
         self,
-        config: Optional[Config] = None,
-        rate_limiter: Optional[RateLimiter] = None,
+        config: Config | None = None,
+        rate_limiter: RateLimiter | None = None,
     ):
         self.config = config or get_config()
         self.rate_limiter = rate_limiter or get_rate_limiter()
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     def _get_headers(self) -> dict[str, str]:
         """Get headers for API requests."""
@@ -158,7 +142,7 @@ class GitHubRestClient:
     async def get_paginated(
         self,
         endpoint: str,
-        max_pages: Optional[int] = None,
+        max_pages: int | None = None,
         per_page: int = 100,
         is_search: bool = False,
     ) -> list[dict[str, Any]]:
@@ -221,7 +205,7 @@ class GitHubRestClient:
     async def get_user_repos(
         self,
         username: str,
-        max_pages: Optional[int] = None,
+        max_pages: int | None = None,
     ) -> list[dict[str, Any]]:
         """Get user's public repositories."""
         return await self.get_paginated(
@@ -247,7 +231,7 @@ class GitHubRestClient:
     async def get_user_followers(
         self,
         username: str,
-        max_pages: Optional[int] = None,
+        max_pages: int | None = None,
     ) -> list[dict[str, Any]]:
         """Get user's followers."""
         return await self.get_paginated(
@@ -258,7 +242,7 @@ class GitHubRestClient:
     async def get_user_following(
         self,
         username: str,
-        max_pages: Optional[int] = None,
+        max_pages: int | None = None,
     ) -> list[dict[str, Any]]:
         """Get users that this user follows."""
         return await self.get_paginated(
@@ -278,10 +262,10 @@ class GitHubRestClient:
         self,
         owner: str,
         repo: str,
-        author: Optional[str] = None,
-        since: Optional[str] = None,
-        until: Optional[str] = None,
-        max_pages: Optional[int] = None,
+        author: str | None = None,
+        since: str | None = None,
+        until: str | None = None,
+        max_pages: int | None = None,
     ) -> list[dict[str, Any]]:
         """Get repository commits, optionally filtered by author."""
         params = []
@@ -301,7 +285,7 @@ class GitHubRestClient:
     async def search_issues(
         self,
         query: str,
-        max_pages: Optional[int] = 10,
+        max_pages: int | None = 10,
     ) -> list[dict[str, Any]]:
         """Search issues and pull requests.
 
@@ -318,7 +302,7 @@ class GitHubRestClient:
     async def search_commits(
         self,
         query: str,
-        max_pages: Optional[int] = 10,
+        max_pages: int | None = 10,
     ) -> list[dict[str, Any]]:
         """Search commits.
 

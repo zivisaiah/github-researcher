@@ -1,10 +1,8 @@
 """Activity and events collector service."""
 
 import asyncio
+import logging
 from datetime import datetime
-from typing import Optional
-
-from rich.console import Console
 
 from github_researcher.models.activity import (
     ActivityData,
@@ -16,7 +14,7 @@ from github_researcher.models.activity import (
 )
 from github_researcher.services.github_rest_client import GitHubRestClient
 
-console = Console()
+logger = logging.getLogger(__name__)
 
 
 class ActivityCollector:
@@ -40,20 +38,20 @@ class ActivityCollector:
         Returns:
             List of GitHubEvent objects
         """
-        console.print(f"[dim]Fetching public events for {username}...[/dim]")
+        logger.debug("Fetching public events for %s", username)
 
         events_data = await self.rest_client.get_user_events(username, max_pages)
         events = [GitHubEvent.from_api(e) for e in events_data]
 
-        console.print(f"[dim]Found {len(events)} events[/dim]")
+        logger.debug("Found %d events", len(events))
 
         return events
 
     async def collect_prs(
         self,
         username: str,
-        since: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         max_results: int = 1000,
     ) -> list[PullRequest]:
         """Collect pull requests authored by user via Search API.
@@ -67,7 +65,7 @@ class ActivityCollector:
         Returns:
             List of PullRequest objects
         """
-        console.print(f"[dim]Searching for pull requests by {username}...[/dim]")
+        logger.debug("Searching for pull requests by %s", username)
 
         # Build search query
         query = f"author:{username} type:pr"
@@ -82,18 +80,18 @@ class ActivityCollector:
             )
 
             prs = [PullRequest.from_api(p) for p in pr_data[:max_results]]
-            console.print(f"[dim]Found {len(prs)} pull requests[/dim]")
+            logger.debug("Found %d pull requests", len(prs))
 
             return prs
         except Exception as e:
-            console.print(f"[yellow]Failed to search PRs: {e}[/yellow]")
+            logger.warning("Failed to search PRs: %s", e)
             return []
 
     async def collect_issues(
         self,
         username: str,
-        since: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         max_results: int = 1000,
     ) -> list[Issue]:
         """Collect issues authored by user via Search API.
@@ -107,7 +105,7 @@ class ActivityCollector:
         Returns:
             List of Issue objects
         """
-        console.print(f"[dim]Searching for issues by {username}...[/dim]")
+        logger.debug("Searching for issues by %s", username)
 
         # Build search query
         query = f"author:{username} type:issue"
@@ -122,18 +120,18 @@ class ActivityCollector:
             )
 
             issues = [Issue.from_api(i) for i in issue_data[:max_results]]
-            console.print(f"[dim]Found {len(issues)} issues[/dim]")
+            logger.debug("Found %d issues", len(issues))
 
             return issues
         except Exception as e:
-            console.print(f"[yellow]Failed to search issues: {e}[/yellow]")
+            logger.warning("Failed to search issues: %s", e)
             return []
 
     async def collect_reviews(
         self,
         username: str,
-        since: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         max_results: int = 500,
     ) -> list[PullRequest]:
         """Collect PRs reviewed by user via Search API.
@@ -147,7 +145,7 @@ class ActivityCollector:
         Returns:
             List of PullRequest objects (PRs that were reviewed)
         """
-        console.print(f"[dim]Searching for reviews by {username}...[/dim]")
+        logger.debug("Searching for reviews by %s", username)
 
         # Build search query
         query = f"reviewed-by:{username} type:pr"
@@ -162,19 +160,19 @@ class ActivityCollector:
             )
 
             prs = [PullRequest.from_api(p) for p in pr_data[:max_results]]
-            console.print(f"[dim]Found {len(prs)} reviewed PRs[/dim]")
+            logger.debug("Found %d reviewed PRs", len(prs))
 
             return prs
         except Exception as e:
-            console.print(f"[yellow]Failed to search reviews: {e}[/yellow]")
+            logger.warning("Failed to search reviews: %s", e)
             return []
 
     async def collect_commits_from_repos(
         self,
         username: str,
         repos: list[str],
-        since: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         max_commits_per_repo: int = 100,
     ) -> list[Commit]:
         """Collect commits by user from specific repositories.
@@ -189,9 +187,7 @@ class ActivityCollector:
         Returns:
             List of Commit objects
         """
-        console.print(
-            f"[dim]Fetching commits from {len(repos)} repositories...[/dim]"
-        )
+        logger.debug("Fetching commits from %d repositories", len(repos))
 
         all_commits = []
         max_pages = (max_commits_per_repo + 99) // 100
@@ -223,7 +219,7 @@ class ActivityCollector:
                 if isinstance(result, list):
                     all_commits.extend(result)
 
-        console.print(f"[dim]Found {len(all_commits)} commits[/dim]")
+        logger.debug("Found %d commits", len(all_commits))
 
         return all_commits
 
@@ -232,8 +228,8 @@ class ActivityCollector:
         owner: str,
         repo: str,
         author: str,
-        since: Optional[datetime],
-        until: Optional[datetime],
+        since: datetime | None,
+        until: datetime | None,
         max_pages: int,
     ) -> list[Commit]:
         """Fetch commits from a single repository."""
@@ -275,10 +271,10 @@ class ActivityCollector:
     async def collect_activity(
         self,
         username: str,
-        since: Optional[datetime] = None,
-        until: Optional[datetime] = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         deep: bool = True,
-        user_repos: Optional[list[str]] = None,
+        user_repos: list[str] | None = None,
     ) -> ActivityData:
         """Collect comprehensive activity data.
 
@@ -317,9 +313,7 @@ class ActivityCollector:
                 prs_task, issues_task, reviews_task
             )
         else:
-            console.print(
-                "[yellow]Skipping PR/Issue/Review search (requires authentication)[/yellow]"
-            )
+            logger.info("Skipping PR/Issue/Review search (requires authentication)")
 
         # Collect commits from user's repos if provided
         commits = commits_from_events

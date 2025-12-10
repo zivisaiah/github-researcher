@@ -1,7 +1,7 @@
 """Repository data models."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,9 +11,9 @@ class Repository(BaseModel):
 
     name: str
     full_name: str
-    description: Optional[str] = None
+    description: str | None = None
     html_url: str = ""
-    language: Optional[str] = None
+    language: str | None = None
     languages: dict[str, int] = Field(default_factory=dict)  # language -> bytes
     stargazers_count: int = 0
     forks_count: int = 0
@@ -21,9 +21,9 @@ class Repository(BaseModel):
     topics: list[str] = Field(default_factory=list)
     is_fork: bool = False
     is_archived: bool = False
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    pushed_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    pushed_at: datetime | None = None
     size: int = 0  # Size in KB
 
     @classmethod
@@ -88,7 +88,7 @@ class RepositorySummary(BaseModel):
     def from_repos(
         cls,
         repos: list[Repository],
-        repo_languages: Optional[dict[str, dict[str, int]]] = None,
+        repo_languages: dict[str, dict[str, int]] | None = None,
     ) -> "RepositorySummary":
         """Create summary from list of repositories.
 
@@ -127,12 +127,12 @@ class PinnedRepository(BaseModel):
 
     name: str
     full_name: str
-    description: Optional[str] = None
+    description: str | None = None
     url: str = ""
     stars: int = 0
     forks: int = 0
-    primary_language: Optional[str] = None
-    language_color: Optional[str] = None
+    primary_language: str | None = None
+    language_color: str | None = None
 
     @classmethod
     def from_graphql(cls, data: dict[str, Any]) -> "PinnedRepository":
@@ -150,7 +150,7 @@ class PinnedRepository(BaseModel):
         )
 
 
-def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+def _parse_datetime(value: str | None) -> datetime | None:
     """Parse ISO datetime string."""
     if not value:
         return None

@@ -1,7 +1,7 @@
 """GitHub GraphQL API client for contribution data."""
 
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from tenacity import (
@@ -12,16 +12,8 @@ from tenacity import (
 )
 
 from github_researcher.config import Config, get_config
+from github_researcher.exceptions import GitHubGraphQLError
 from github_researcher.utils.rate_limiter import RateLimiter, get_rate_limiter
-
-
-class GitHubGraphQLError(Exception):
-    """Exception for GraphQL API errors."""
-
-    def __init__(self, message: str, errors: Optional[list] = None):
-        super().__init__(message)
-        self.errors = errors or []
-
 
 # GraphQL query for contribution calendar and totals
 CONTRIBUTIONS_QUERY = """
@@ -116,12 +108,12 @@ class GitHubGraphQLClient:
 
     def __init__(
         self,
-        config: Optional[Config] = None,
-        rate_limiter: Optional[RateLimiter] = None,
+        config: Config | None = None,
+        rate_limiter: RateLimiter | None = None,
     ):
         self.config = config or get_config()
         self.rate_limiter = rate_limiter or get_rate_limiter()
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     def _get_headers(self) -> dict[str, str]:
         """Get headers for API requests."""
@@ -165,7 +157,7 @@ class GitHubGraphQLClient:
     async def execute(
         self,
         query: str,
-        variables: Optional[dict[str, Any]] = None,
+        variables: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Execute a GraphQL query.
 
@@ -212,8 +204,8 @@ class GitHubGraphQLClient:
     async def get_contributions(
         self,
         username: str,
-        from_date: Optional[date] = None,
-        to_date: Optional[date] = None,
+        from_date: date | None = None,
+        to_date: date | None = None,
     ) -> dict[str, Any]:
         """Get user's contribution calendar and statistics.
 
