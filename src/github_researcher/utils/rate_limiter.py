@@ -6,9 +6,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
 
+import httpx
 from rich.console import Console
 
 console = Console()
+
+# Threshold for warning about low remaining requests
+LOW_REMAINING_THRESHOLD = 10
 
 
 def format_time_remaining(seconds: float) -> str:
@@ -22,9 +26,9 @@ def format_time_remaining(seconds: float) -> str:
         return f"{seconds} second{'s' if seconds != 1 else ''}"
     elif seconds < 3600:
         minutes = seconds // 60
-        secs = seconds % 60
-        if secs > 0:
-            return f"{minutes} min {secs} sec"
+        remaining_secs = seconds % 60
+        if remaining_secs > 0:
+            return f"{minutes} min {remaining_secs} sec"
         return f"{minutes} minute{'s' if minutes != 1 else ''}"
     else:
         hours = seconds // 3600
@@ -124,15 +128,17 @@ class RateLimiter:
                 if wait_time > 0:
                     human_time = format_time_remaining(wait_time)
                     reset_at = format_reset_time(state.reset_time)
+                    console.print()
                     console.print(
-                        f"\n[red]Rate limit exceeded[/red] for {api_name} API."
+                        f"[red]Rate limit exceeded[/red] for {api_name} API."
                     )
                     console.print(
                         f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]"
                     )
                     console.print(
-                        f"[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]\n"
+                        "[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
                     )
+                    console.print()
                     raise RateLimitExceededError(
                         f"Rate limit exceeded. Resets in {human_time} (at {reset_at})"
                     )
@@ -204,8 +210,6 @@ async def check_rate_limit_from_api(
     Returns:
         Dict with rate limit info including remaining and reset time
     """
-    import httpx
-
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "github-researcher/0.1.0",
@@ -234,8 +238,10 @@ async def check_rate_limit_from_api(
                         "reset": search.get("reset", time.time() + 60),
                     },
                 }
-    except Exception as e:
-        console.print(f"[dim]Could not check rate limit: {e}[/dim]")
+    except httpx.HTTPError as e:
+        console.print(f"[dim]Could not check rate limit (HTTP error): {e}[/dim]")
+    except httpx.TimeoutException as e:
+        console.print(f"[dim]Could not check rate limit (timeout): {e}[/dim]")
 
     # Return defaults if we can't check
     return {
@@ -263,19 +269,20 @@ def check_and_report_rate_limit(rate_info: dict, is_authenticated: bool) -> bool
         human_time = format_time_remaining(reset_time - time.time())
         reset_at = format_reset_time(reset_time)
 
-        console.print(f"\n[red]Rate limit exhausted[/red] (0/{limit} requests remaining)")
+        console.print()
+        console.print(f"[red]Rate limit exhausted[/red] (0/{limit} requests remaining)")
         console.print(f"[yellow]  Resets in: {human_time} (at {reset_at})[/yellow]")
 
         if not is_authenticated:
             console.print(
-                f"[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
+                "[dim]  Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60[/dim]"
             )
 
         console.print()
         return False
 
     # Show warning if running low
-    if remaining < 10:
+    if remaining < LOW_REMAINING_THRESHOLD:
         console.print(
             f"[yellow]Warning: Only {remaining}/{limit} API requests remaining[/yellow]"
         )

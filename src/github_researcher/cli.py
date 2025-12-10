@@ -153,6 +153,11 @@ def analyze(
         console.print("\n[yellow]Analysis cancelled[/yellow]")
         raise typer.Exit(1)
     except Exception as e:
+        # Import here to avoid circular imports
+        from github_researcher.utils.rate_limiter import RateLimitExceededError
+        if isinstance(e, RateLimitExceededError):
+            # Message already printed by check_and_report_rate_limit or _acquire
+            raise typer.Exit(1)
         console.print(f"[red]Error: {e}[/red]")
         if verbose:
             import traceback
@@ -184,6 +189,7 @@ async def _run_analysis(
         get_rate_limiter,
         check_rate_limit_from_api,
         check_and_report_rate_limit,
+        RateLimitExceededError,
     )
 
     output_console = OutputConsole(verbose=verbose, quiet=quiet)
@@ -204,7 +210,7 @@ async def _run_analysis(
         token=config.github_token,
     )
     if not check_and_report_rate_limit(rate_info, config.is_authenticated):
-        return  # Exit if rate limit exhausted
+        raise RateLimitExceededError("Rate limit exhausted before starting")
 
     # Initialize clients
     rate_limiter = get_rate_limiter()
