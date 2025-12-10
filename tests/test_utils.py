@@ -103,12 +103,12 @@ class TestFormatTimeRemaining:
     def test_seconds_only(self):
         """Test formatting seconds under a minute."""
         assert format_time_remaining(30) == "30 seconds"
-        assert format_time_remaining(1) == "1 seconds"
+        assert format_time_remaining(1) == "1 second"
         assert format_time_remaining(59) == "59 seconds"
 
     def test_minutes_only(self):
         """Test formatting exact minutes."""
-        assert format_time_remaining(60) == "1 minutes"
+        assert format_time_remaining(60) == "1 minute"
         assert format_time_remaining(120) == "2 minutes"
 
     def test_minutes_and_seconds(self):

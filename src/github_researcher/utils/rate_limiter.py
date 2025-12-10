@@ -19,19 +19,19 @@ def format_time_remaining(seconds: float) -> str:
     seconds = int(seconds)
 
     if seconds < 60:
-        return f"{seconds} seconds"
+        return f"{seconds} second{'s' if seconds != 1 else ''}"
     elif seconds < 3600:
         minutes = seconds // 60
         secs = seconds % 60
         if secs > 0:
             return f"{minutes} min {secs} sec"
-        return f"{minutes} minutes"
+        return f"{minutes} minute{'s' if minutes != 1 else ''}"
     else:
         hours = seconds // 3600
         minutes = (seconds % 3600) // 60
         if minutes > 0:
             return f"{hours} hr {minutes} min"
-        return f"{hours} hour{'s' if hours > 1 else ''}"
+        return f"{hours} hour{'s' if hours != 1 else ''}"
 
 
 def format_reset_time(reset_timestamp: float) -> str:
