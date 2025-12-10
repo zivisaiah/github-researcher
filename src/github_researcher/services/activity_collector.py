@@ -242,16 +242,11 @@ class ActivityCollector:
                 until=until.isoformat() if until else None,
                 max_pages=max_pages,
             )
-            return [
-                Commit.from_api(c, f"{owner}/{repo}")
-                for c in commits_data
-            ]
+            return [Commit.from_api(c, f"{owner}/{repo}") for c in commits_data]
         except Exception:
             return []
 
-    def extract_commits_from_events(
-        self, events: list[GitHubEvent]
-    ) -> list[Commit]:
+    def extract_commits_from_events(self, events: list[GitHubEvent]) -> list[Commit]:
         """Extract commits from PushEvents.
 
         Args:
@@ -309,18 +304,14 @@ class ActivityCollector:
             issues_task = self.collect_issues(username, since, until)
             reviews_task = self.collect_reviews(username, since, until)
 
-            prs, issues, reviews = await asyncio.gather(
-                prs_task, issues_task, reviews_task
-            )
+            prs, issues, reviews = await asyncio.gather(prs_task, issues_task, reviews_task)
         else:
             logger.info("Skipping PR/Issue/Review search (requires authentication)")
 
         # Collect commits from user's repos if provided
         commits = commits_from_events
         if user_repos:
-            repo_commits = await self.collect_commits_from_repos(
-                username, user_repos, since, until
-            )
+            repo_commits = await self.collect_commits_from_repos(username, user_repos, since, until)
             # Merge and deduplicate
             seen_shas = {c.sha for c in commits}
             for commit in repo_commits:
@@ -354,6 +345,4 @@ class ActivityCollector:
         Returns:
             ActivitySummary with statistics
         """
-        return ActivitySummary.from_activity(
-            username, activity, period_start, period_end
-        )
+        return ActivitySummary.from_activity(username, activity, period_start, period_end)

@@ -154,12 +154,14 @@ def analyze(
     except Exception as e:
         # Import here to avoid circular imports
         from github_researcher.utils.rate_limiter import RateLimitExceededError
+
         if isinstance(e, RateLimitExceededError):
             # Message already printed by check_and_report_rate_limit or _acquire
             raise typer.Exit(1)
         console.print(f"[red]Error: {e}[/red]")
         if verbose:
             import traceback
+
             traceback.print_exc()
         raise typer.Exit(1)
 
@@ -221,7 +223,9 @@ async def _run_analysis(
         # Initialize collectors
         profile_collector = ProfileCollector(rest_client, graphql_client)
         repo_collector = RepoCollector(rest_client, graphql_client)
-        activity_collector = ActivityCollector(rest_client, is_authenticated=config.is_authenticated)
+        activity_collector = ActivityCollector(
+            rest_client, is_authenticated=config.is_authenticated
+        )
 
         contribution_collector = None
         if graphql_client:

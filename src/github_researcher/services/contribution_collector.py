@@ -35,9 +35,7 @@ class ContributionCollector:
         logger.debug("Fetching contribution calendar for %s", username)
 
         try:
-            data = await self.graphql_client.get_contributions(
-                username, from_date, to_date
-            )
+            data = await self.graphql_client.get_contributions(username, from_date, to_date)
             stats = ContributionStats.from_graphql(data)
 
             logger.debug("Found %d contributions", stats.total_contributions)
@@ -78,9 +76,7 @@ class ContributionCollector:
                     to_date = today
 
                 if from_date <= today:
-                    data = await self.graphql_client.get_contributions(
-                        username, from_date, to_date
-                    )
+                    data = await self.graphql_client.get_contributions(username, from_date, to_date)
                     results[year] = ContributionStats.from_graphql(data)
             except GitHubGraphQLError as e:
                 logger.warning("Failed to fetch contributions for %d: %s", year, e)

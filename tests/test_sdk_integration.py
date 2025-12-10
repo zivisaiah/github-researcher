@@ -3,6 +3,9 @@
 These tests record and replay actual HTTP interactions with the GitHub API.
 To record new cassettes, delete the corresponding cassette file and run the test
 with a valid GITHUB_TOKEN environment variable.
+
+Recording cassettes:
+    GITHUB_TOKEN=ghp_xxx pytest tests/test_sdk_integration.py -v
 """
 
 from __future__ import annotations
@@ -36,6 +39,26 @@ my_vcr = vcr.VCR(
 def get_test_token() -> str | None:
     """Get token for recording cassettes, or None for playback."""
     return os.getenv("GITHUB_RESEARCHER_TOKEN") or os.getenv("GITHUB_TOKEN")
+
+
+def cassette_exists(name: str) -> bool:
+    """Check if a VCR cassette file exists."""
+    return (CASSETTES_DIR / name).exists()
+
+
+def require_cassette_or_token(cassette_name: str) -> str:
+    """Get token for test, or skip if cassette doesn't exist and no token available.
+
+    This ensures tests that need auth can:
+    1. Record with real token (cassette doesn't exist)
+    2. Replay without token (cassette exists)
+    3. Skip cleanly if neither is available
+    """
+    token = get_test_token()
+    if not cassette_exists(cassette_name) and not token:
+        pytest.skip(f"Cassette '{cassette_name}' not found. Set GITHUB_TOKEN to record it.")
+    # Return real token for recording, or fake token for playback
+    return token or "ghp_fake_token_for_vcr_playback"
 
 
 @pytest.fixture(autouse=True)
@@ -109,17 +132,14 @@ class TestSDKGetActivity:
         assert activity.reviews is not None
 
     @pytest.mark.asyncio
+    @my_vcr.use_cassette("get_activity_deep_octocat.yaml")
     async def test_get_activity_with_deep_search(self):
         """Test getting activity with deep search enabled (requires auth).
 
-        Note: This test is skipped in CI as it requires authentication.
-        Deep search uses the Search API which requires a token.
+        Deep search uses the Search API which requires a token for author: queries.
+        The cassette is recorded with a token (filtered out) so it replays in CI.
         """
-        token = get_test_token()
-        if not token:
-            pytest.skip("Deep search requires authentication")
-
-        # This test only runs locally with a token - no cassette needed
+        token = require_cassette_or_token("get_activity_deep_octocat.yaml")
         async with GitHubResearcher(token=token) as client:
             activity = await client.get_activity("octocat", days=30, deep=True)
 
@@ -132,23 +152,21 @@ class TestSDKGetContributions:
     """Integration tests for get_contributions method."""
 
     @pytest.mark.asyncio
+    @my_vcr.use_cassette("get_contributions_octocat.yaml")
     async def test_get_contributions_authenticated(self):
-        """Test getting contributions (requires authentication).
+        """Test getting contributions with authentication.
 
-        Note: This test is skipped in CI as it requires authentication.
         Contributions use the GraphQL API which requires a token.
+        The cassette is recorded with a token (filtered out) so it replays in CI.
         """
-        token = get_test_token()
-        if not token:
-            pytest.skip("Contributions require authentication")
-
-        # This test only runs locally with a token - no cassette needed
+        token = require_cassette_or_token("get_contributions_octocat.yaml")
         async with GitHubResearcher(token=token) as client:
             contributions = await client.get_contributions("octocat")
 
-        if contributions:
-            assert contributions.total_contributions >= 0
-            assert contributions.calendar is not None
+        # Should always get real data (from cassette or live API)
+        assert contributions is not None
+        assert contributions.total_contributions >= 0
+        assert contributions.calendar is not None
 
     @pytest.mark.asyncio
     async def test_get_contributions_unauthenticated(self):
@@ -216,23 +234,11 @@ class TestSDKAuthenticationModes:
 
     @pytest.mark.asyncio
     async def test_authenticated_mode(self):
-        """Test SDK in authenticated mode.
-
-        Note: This test is skipped in CI as it requires authentication.
-        """
-        token = get_test_token()
-        if not token:
-            pytest.skip("Test requires authentication")
-
-        # This test only runs locally with a token - no cassette needed
-        async with GitHubResearcher(token=token) as client:
+        """Test SDK in authenticated mode."""
+        # Use any token value to test authenticated state
+        async with GitHubResearcher(token="ghp_test_token") as client:
             assert client.is_authenticated is True
             assert client._graphql_client is not None
-
-            # Should be able to get contributions
-            contributions = await client.get_contributions("octocat")
-            # May or may not have contributions, but should not be None
-            assert contributions is not None or True  # Accept either
 
     @pytest.mark.asyncio
     async def test_unauthenticated_mode(self):

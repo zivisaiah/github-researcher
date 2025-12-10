@@ -1,12 +1,10 @@
 """Tests for utility modules."""
 
-import pytest
-
 from github_researcher.utils.pagination import (
-    parse_link_header,
+    build_paginated_url,
     get_next_page_url,
     get_total_pages,
-    build_paginated_url,
+    parse_link_header,
 )
 
 
@@ -70,11 +68,7 @@ class TestBuildPaginatedUrl:
 
     def test_url_with_existing_params(self):
         """Test adding pagination to URL with existing params."""
-        url = build_paginated_url(
-            "https://api.github.com/users?sort=updated",
-            3,
-            50
-        )
+        url = build_paginated_url("https://api.github.com/users?sort=updated", 3, 50)
         assert "page=3" in url
         assert "per_page=50" in url
         assert "sort=updated" in url

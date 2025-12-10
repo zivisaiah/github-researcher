@@ -2,13 +2,11 @@
 
 import time
 
-import pytest
-
 from github_researcher.utils.rate_limiter import (
-    format_time_remaining,
-    format_reset_time,
-    check_and_report_rate_limit,
     LOW_REMAINING_THRESHOLD,
+    check_and_report_rate_limit,
+    format_reset_time,
+    format_time_remaining,
 )
 
 
@@ -67,23 +65,17 @@ class TestCheckAndReportRateLimit:
 
     def test_returns_true_when_remaining(self):
         """Test returns True when requests remaining."""
-        rate_info = {
-            "core": {"remaining": 100, "limit": 5000, "reset": time.time() + 3600}
-        }
+        rate_info = {"core": {"remaining": 100, "limit": 5000, "reset": time.time() + 3600}}
         assert check_and_report_rate_limit(rate_info, is_authenticated=True) is True
 
     def test_returns_false_when_exhausted(self):
         """Test returns False when rate limit exhausted."""
-        rate_info = {
-            "core": {"remaining": 0, "limit": 60, "reset": time.time() + 3600}
-        }
+        rate_info = {"core": {"remaining": 0, "limit": 60, "reset": time.time() + 3600}}
         assert check_and_report_rate_limit(rate_info, is_authenticated=False) is False
 
     def test_returns_true_when_low_but_not_exhausted(self):
         """Test returns True when running low but not exhausted."""
-        rate_info = {
-            "core": {"remaining": 5, "limit": 60, "reset": time.time() + 3600}
-        }
+        rate_info = {"core": {"remaining": 5, "limit": 60, "reset": time.time() + 3600}}
         assert check_and_report_rate_limit(rate_info, is_authenticated=False) is True
 
     def test_warning_at_threshold(self):

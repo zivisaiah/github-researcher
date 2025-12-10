@@ -32,10 +32,7 @@ class ContributionWeek(BaseModel):
     @classmethod
     def from_graphql(cls, data: dict[str, Any]) -> "ContributionWeek":
         """Create from GraphQL response."""
-        days = [
-            ContributionDay.from_graphql(day)
-            for day in data.get("contributionDays", [])
-        ]
+        days = [ContributionDay.from_graphql(day) for day in data.get("contributionDays", [])]
         return cls(days=days)
 
 
@@ -48,10 +45,7 @@ class ContributionCalendar(BaseModel):
     @classmethod
     def from_graphql(cls, data: dict[str, Any]) -> "ContributionCalendar":
         """Create from GraphQL response."""
-        weeks = [
-            ContributionWeek.from_graphql(week)
-            for week in data.get("weeks", [])
-        ]
+        weeks = [ContributionWeek.from_graphql(week) for week in data.get("weeks", [])]
         return cls(
             total_contributions=data.get("totalContributions", 0),
             weeks=weeks,

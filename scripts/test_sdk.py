@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""CLI utility to test the GitHub Researcher SDK locally."""
+"""CLI utility to test the GitHub Researcher SDK locally.
+
+Usage:
+    # Install package first (recommended)
+    pip install -e .
+
+    # Then run tests
+    python scripts/test_sdk.py torvalds --all
+"""
 
 from __future__ import annotations
 
@@ -11,10 +19,12 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any
 
-# Add src to path for local development
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-from github_researcher import GitHubResearcher, __version__
+try:
+    from github_researcher import GitHubResearcher, __version__
+except ImportError:
+    # Fallback for development without install
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+    from github_researcher import GitHubResearcher, __version__
 
 if TYPE_CHECKING:
     from github_researcher.models.activity import ActivityData

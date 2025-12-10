@@ -1,0 +1,75 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      Accept:
+      - application/vnd.github+json
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Host:
+      - api.github.com
+    method: GET
+    uri: https://api.github.com/users/octocat/events/public?per_page=100&page=1
+  response:
+    body:
+      string: '[]'
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Origin:
+      - '*'
+      Access-Control-Expose-Headers:
+      - ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining,
+        X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes,
+        X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO,
+        X-GitHub-Request-Id, Deprecation, Sunset
+      Cache-Control:
+      - public, max-age=300, s-maxage=300
+      Content-Length:
+      - '2'
+      Content-Security-Policy:
+      - default-src 'none'
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Wed, 10 Dec 2025 17:00:13 GMT
+      ETag:
+      - '"71430a0b37722d41158a6620d885b0253248a3153496aedded896cb387a01b73"'
+      Referrer-Policy:
+      - origin-when-cross-origin, strict-origin-when-cross-origin
+      Server:
+      - github.com
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubdomains; preload
+      Vary:
+      - Accept,Accept-Encoding, Accept, X-Requested-With
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - deny
+      X-GitHub-Media-Type:
+      - github.v3; format=json
+      X-GitHub-Request-Id:
+      - F6EA:19F1DA:169D70:1FAF0B:6939A71D
+      X-Poll-Interval:
+      - '60'
+      X-RateLimit-Limit:
+      - '60'
+      X-RateLimit-Remaining:
+      - '59'
+      X-RateLimit-Reset:
+      - '1765389613'
+      X-RateLimit-Resource:
+      - core
+      X-RateLimit-Used:
+      - '1'
+      X-XSS-Protection:
+      - '0'
+      x-github-api-version-selected:
+      - '2022-11-28'
+    status:
+      code: 200
+      message: OK
+version: 1

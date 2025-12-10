@@ -1,6 +1,6 @@
 """Tests for GitHubResearcher SDK class."""
 
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -110,9 +110,7 @@ class TestGitHubResearcherGetProfile:
             social=SocialData(),
         )
 
-        with patch(
-            "github_researcher.sdk.ProfileCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.ProfileCollector") as MockCollector:
             mock_instance = MockCollector.return_value
             mock_instance.collect_full = AsyncMock(return_value=mock_profile)
 
@@ -130,13 +128,9 @@ class TestGitHubResearcherGetProfile:
     @pytest.mark.asyncio
     async def test_get_profile_user_not_found(self):
         """Test that UserNotFoundError is raised for non-existent user."""
-        with patch(
-            "github_researcher.sdk.ProfileCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.ProfileCollector") as MockCollector:
             mock_instance = MockCollector.return_value
-            mock_instance.collect_full = AsyncMock(
-                side_effect=ValueError("User not found")
-            )
+            mock_instance.collect_full = AsyncMock(side_effect=ValueError("User not found"))
 
             async with GitHubResearcher(token="ghp_test") as client:
                 with pytest.raises(UserNotFoundError) as exc_info:
@@ -166,9 +160,7 @@ class TestGitHubResearcherGetRepos:
             total_forks=50000,
         )
 
-        with patch(
-            "github_researcher.sdk.RepoCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.RepoCollector") as MockCollector:
             mock_instance = MockCollector.return_value
             mock_instance.collect_repos = AsyncMock(return_value=mock_repos)
 
@@ -196,13 +188,9 @@ class TestGitHubResearcherGetContributions:
             calendar=ContributionCalendar(total_contributions=1500),
         )
 
-        with patch(
-            "github_researcher.sdk.ContributionCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.ContributionCollector") as MockCollector:
             mock_instance = MockCollector.return_value
-            mock_instance.collect_contributions = AsyncMock(
-                return_value=mock_contributions
-            )
+            mock_instance.collect_contributions = AsyncMock(return_value=mock_contributions)
 
             async with GitHubResearcher(token="ghp_test") as client:
                 result = await client.get_contributions("torvalds")
@@ -236,9 +224,7 @@ class TestGitHubResearcherGetActivity:
             ],
         )
 
-        with patch(
-            "github_researcher.sdk.ActivityCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.ActivityCollector") as MockCollector:
             mock_instance = MockCollector.return_value
             mock_instance.collect_activity = AsyncMock(return_value=mock_activity)
 
@@ -251,9 +237,7 @@ class TestGitHubResearcherGetActivity:
     @pytest.mark.asyncio
     async def test_get_activity_passes_auth_flag(self):
         """Test that authentication flag is passed to ActivityCollector."""
-        with patch(
-            "github_researcher.sdk.ActivityCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.ActivityCollector") as MockCollector:
             mock_instance = MockCollector.return_value
             mock_instance.collect_activity = AsyncMock(return_value=ActivityData())
 
@@ -268,9 +252,7 @@ class TestGitHubResearcherGetActivity:
     @pytest.mark.asyncio
     async def test_get_activity_unauthenticated(self):
         """Test activity retrieval without authentication."""
-        with patch(
-            "github_researcher.sdk.ActivityCollector"
-        ) as MockCollector:
+        with patch("github_researcher.sdk.ActivityCollector") as MockCollector:
             mock_instance = MockCollector.return_value
             mock_instance.collect_activity = AsyncMock(return_value=ActivityData())
 
@@ -303,26 +285,19 @@ class TestGitHubResearcherAnalyze:
             period_end=datetime.now(),
         )
 
-        with patch(
-            "github_researcher.sdk.ProfileCollector"
-        ) as MockProfile, patch(
-            "github_researcher.sdk.RepoCollector"
-        ) as MockRepo, patch(
-            "github_researcher.sdk.ContributionCollector"
-        ) as MockContrib, patch(
-            "github_researcher.sdk.ActivityCollector"
-        ) as MockActivity:
+        with (
+            patch("github_researcher.sdk.ProfileCollector") as MockProfile,
+            patch("github_researcher.sdk.RepoCollector") as MockRepo,
+            patch("github_researcher.sdk.ContributionCollector") as MockContrib,
+            patch("github_researcher.sdk.ActivityCollector") as MockActivity,
+        ):
             MockProfile.return_value.collect_full = AsyncMock(return_value=mock_profile)
             MockRepo.return_value.collect_repos = AsyncMock(return_value=mock_repos)
             MockContrib.return_value.collect_contributions = AsyncMock(
                 return_value=mock_contributions
             )
-            MockActivity.return_value.collect_activity = AsyncMock(
-                return_value=mock_activity
-            )
-            MockActivity.return_value.summarize_activity = MagicMock(
-                return_value=mock_summary
-            )
+            MockActivity.return_value.collect_activity = AsyncMock(return_value=mock_activity)
+            MockActivity.return_value.summarize_activity = MagicMock(return_value=mock_summary)
 
             async with GitHubResearcher(token="ghp_test") as client:
                 result = await client.analyze("testuser", days=30)
@@ -356,28 +331,19 @@ class TestGitHubResearcherAnalyze:
             period_end=datetime.now(),
         )
 
-        with patch(
-            "github_researcher.sdk.ProfileCollector"
-        ) as MockProfile, patch(
-            "github_researcher.sdk.RepoCollector"
-        ) as MockRepo, patch(
-            "github_researcher.sdk.ContributionCollector"
-        ) as MockContrib, patch(
-            "github_researcher.sdk.ActivityCollector"
-        ) as MockActivity:
+        with (
+            patch("github_researcher.sdk.ProfileCollector") as MockProfile,
+            patch("github_researcher.sdk.RepoCollector") as MockRepo,
+            patch("github_researcher.sdk.ContributionCollector") as MockContrib,
+            patch("github_researcher.sdk.ActivityCollector") as MockActivity,
+        ):
             MockProfile.return_value.collect_full = AsyncMock(return_value=mock_profile)
             MockRepo.return_value.collect_repos = AsyncMock(return_value=mock_repos)
-            MockActivity.return_value.collect_activity = AsyncMock(
-                return_value=mock_activity
-            )
-            MockActivity.return_value.summarize_activity = MagicMock(
-                return_value=mock_summary
-            )
+            MockActivity.return_value.collect_activity = AsyncMock(return_value=mock_activity)
+            MockActivity.return_value.summarize_activity = MagicMock(return_value=mock_summary)
 
             async with GitHubResearcher(token="ghp_test") as client:
-                result = await client.analyze(
-                    "testuser", include_contributions=False
-                )
+                result = await client.analyze("testuser", include_contributions=False)
 
             # Contributions should not have been fetched
             MockContrib.return_value.collect_contributions.assert_not_called()

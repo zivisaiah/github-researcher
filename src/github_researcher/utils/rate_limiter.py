@@ -125,7 +125,9 @@ class RateLimiter:
                     reset_at = format_reset_time(state.reset_time)
                     logger.error(
                         "Rate limit exceeded for %s API. Resets in %s (at %s)",
-                        api_name, human_time, reset_at
+                        api_name,
+                        human_time,
+                        reset_at,
                     )
                     raise RateLimitExceededError(
                         f"Rate limit exceeded. Resets in {human_time} (at {reset_at})"
@@ -259,12 +261,12 @@ def check_and_report_rate_limit(rate_info: dict, is_authenticated: bool) -> bool
 
         logger.error(
             "Rate limit exhausted (0/%d requests remaining). Resets in %s (at %s)",
-            limit, human_time, reset_at
+            limit,
+            human_time,
+            reset_at,
         )
         if not is_authenticated:
-            logger.info(
-                "Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60"
-            )
+            logger.info("Tip: Set GITHUB_RESEARCHER_TOKEN for 5,000 requests/hour instead of 60")
         return False
 
     # Show warning if running low

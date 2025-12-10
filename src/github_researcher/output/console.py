@@ -58,8 +58,7 @@ class Console:
         self.console.print()
         self.console.print(
             Panel(
-                f"[bold blue]GitHub Activity Analysis[/bold blue]\n"
-                f"[dim]User: {username}[/dim]",
+                f"[bold blue]GitHub Activity Analysis[/bold blue]\n[dim]User: {username}[/dim]",
                 expand=False,
             )
         )
@@ -75,7 +74,12 @@ class Console:
         table.add_column("Value")
 
         table.add_row("Name", profile.get("name") or profile.get("username", ""))
-        table.add_row("Bio", (profile.get("bio") or "")[:60] + "..." if len(profile.get("bio") or "") > 60 else profile.get("bio") or "-")
+        table.add_row(
+            "Bio",
+            (profile.get("bio") or "")[:60] + "..."
+            if len(profile.get("bio") or "") > 60
+            else profile.get("bio") or "-",
+        )
         table.add_row("Location", profile.get("location") or "-")
         table.add_row("Company", profile.get("company") or "-")
         table.add_row("Public Repos", str(profile.get("public_repos", 0)))
@@ -133,7 +137,7 @@ class Console:
         if busiest:
             table.add_row(
                 "Busiest Day",
-                f"{busiest} ({contributions.get('busiest_day_count', 0)} contributions)"
+                f"{busiest} ({contributions.get('busiest_day_count', 0)} contributions)",
             )
 
         self.console.print(table)
@@ -153,10 +157,7 @@ class Console:
         table.add_row("PRs Merged", str(summary.get("total_prs_merged", 0)))
         table.add_row("Issues Opened", str(summary.get("total_issues_opened", 0)))
         table.add_row("Reviews", str(summary.get("total_reviews", 0)))
-        table.add_row(
-            "Repos Contributed To",
-            str(len(summary.get("repos_contributed_to", [])))
-        )
+        table.add_row("Repos Contributed To", str(len(summary.get("repos_contributed_to", []))))
 
         self.console.print(table)
         self.console.print()
@@ -169,10 +170,7 @@ class Console:
             repo_table.add_column("Activity", justify="right")
 
             for repo in most_active[:5]:
-                repo_table.add_row(
-                    repo.get("repo", ""),
-                    str(repo.get("activity_count", 0))
-                )
+                repo_table.add_row(repo.get("repo", ""), str(repo.get("activity_count", 0)))
 
             self.console.print(repo_table)
             self.console.print()
@@ -189,12 +187,8 @@ class Console:
         self.print_activity_summary(report.get("summary", {}))
 
         # Footer
-        self.console.print(
-            f"[dim]Analysis completed at {report.get('generated_at', '')}[/dim]"
-        )
-        self.console.print(
-            f"[dim]Mode: {report.get('analysis_mode', 'unknown')}[/dim]"
-        )
+        self.console.print(f"[dim]Analysis completed at {report.get('generated_at', '')}[/dim]")
+        self.console.print(f"[dim]Mode: {report.get('analysis_mode', 'unknown')}[/dim]")
 
     def print_output_path(self, path: str):
         """Print output file path."""

@@ -80,8 +80,7 @@ def build_report(
         "followers_count": user_data.social.followers_count,
         "following_count": user_data.social.following_count,
         "organizations": [
-            {"login": org.login, "name": org.name}
-            for org in user_data.social.organizations
+            {"login": org.login, "name": org.name} for org in user_data.social.organizations
         ],
     }
 
@@ -91,9 +90,7 @@ def build_report(
         "total_stars": repos.total_stars,
         "total_forks": repos.total_forks,
         "languages": repos.languages.percentages,
-        "top_topics": dict(
-            sorted(repos.topics.items(), key=lambda x: x[1], reverse=True)[:10]
-        ),
+        "top_topics": dict(sorted(repos.topics.items(), key=lambda x: x[1], reverse=True)[:10]),
         "repos": [
             {
                 "name": r.full_name,
@@ -128,9 +125,7 @@ def build_report(
             "calendar": serialize_for_json(contributions.calendar.model_dump()),
         }
     else:
-        contributions_data = {
-            "note": "Contribution data requires GitHub token for GraphQL API"
-        }
+        contributions_data = {"note": "Contribution data requires GitHub token for GraphQL API"}
 
     # Activity section (truncated for JSON size)
     activity_data = {

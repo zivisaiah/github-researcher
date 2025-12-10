@@ -40,9 +40,7 @@ class Config:
         return cls(
             github_token=token,
             github_api_url=os.getenv("GITHUB_API_URL", "https://api.github.com"),
-            github_graphql_url=os.getenv(
-                "GITHUB_GRAPHQL_URL", "https://api.github.com/graphql"
-            ),
+            github_graphql_url=os.getenv("GITHUB_GRAPHQL_URL", "https://api.github.com/graphql"),
         )
 
     @property

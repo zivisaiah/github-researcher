@@ -1,6 +1,7 @@
 """GitHub Researcher SDK - High-level API for analyzing GitHub user activity."""
 
 import logging
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -21,10 +22,28 @@ from github_researcher.services.profile_collector import ProfileCollector
 from github_researcher.services.repo_collector import RepoCollector
 from github_researcher.utils.rate_limiter import RateLimiter, get_rate_limiter
 
-# Default number of user repos to search for commits in activity collection
-DEFAULT_MAX_REPOS_FOR_ACTIVITY = 20
-
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SDKConfig:
+    """Configuration options for GitHubResearcher SDK.
+
+    Attributes:
+        max_repos_for_activity: Maximum number of repos to search for commits
+            when collecting activity data. Default: 20.
+        max_retries: Maximum number of retry attempts for failed requests.
+            Default: 3.
+        retry_min_wait: Minimum wait time (seconds) between retries. Default: 1.
+        retry_max_wait: Maximum wait time (seconds) between retries. Default: 10.
+        request_timeout: Timeout (seconds) for HTTP requests. Default: 30.
+    """
+
+    max_repos_for_activity: int = 20
+    max_retries: int = 3
+    retry_min_wait: float = 1.0
+    retry_max_wait: float = 10.0
+    request_timeout: float = 30.0
 
 
 class GitHubResearcher:
@@ -36,8 +55,9 @@ class GitHubResearcher:
 
     Example usage:
         ```python
-        from github_researcher import GitHubResearcher
+        from github_researcher import GitHubResearcher, SDKConfig
 
+        # Basic usage
         async with GitHubResearcher(token="ghp_xxx") as client:
             # Full analysis
             report = await client.analyze("torvalds")
@@ -47,6 +67,15 @@ class GitHubResearcher:
             repos = await client.get_repos("torvalds")
             activity = await client.get_activity("torvalds", days=90)
             contributions = await client.get_contributions("torvalds")
+
+        # With custom configuration
+        config = SDKConfig(
+            max_repos_for_activity=50,
+            max_retries=5,
+            retry_max_wait=30.0,
+        )
+        async with GitHubResearcher(token="ghp_xxx", sdk_config=config) as client:
+            report = await client.analyze("torvalds")
         ```
 
     Args:
@@ -55,6 +84,7 @@ class GitHubResearcher:
             With a token, rate limits are 5,000 requests/hour.
         api_url: GitHub API base URL (default: https://api.github.com)
         graphql_url: GitHub GraphQL API URL (default: https://api.github.com/graphql)
+        sdk_config: SDK configuration options (SDKConfig instance)
     """
 
     def __init__(
@@ -62,11 +92,14 @@ class GitHubResearcher:
         token: str | None = None,
         api_url: str = "https://api.github.com",
         graphql_url: str = "https://api.github.com/graphql",
+        sdk_config: SDKConfig | None = None,
     ):
+        self._sdk_config = sdk_config or SDKConfig()
         self._config = Config(
             github_token=token,
             github_api_url=api_url,
             github_graphql_url=graphql_url,
+            request_timeout=self._sdk_config.request_timeout,
         )
         self._rate_limiter: RateLimiter | None = None
         self._rest_client: GitHubRestClient | None = None
@@ -205,9 +238,7 @@ class GitHubResearcher:
         self._ensure_initialized()
 
         if not self._graphql_client:
-            logger.warning(
-                "Contributions require authentication. Skipping for %s", username
-            )
+            logger.warning("Contributions require authentication. Skipping for %s", username)
             return None
 
         logger.info("Fetching contributions for %s", username)
@@ -272,7 +303,8 @@ class GitHubResearcher:
 
         # Get repos first for commit search
         repos = await self.get_repos(username, include_languages=False)
-        user_repos = [r.full_name for r in repos.repos[:DEFAULT_MAX_REPOS_FOR_ACTIVITY]]
+        max_repos = self._sdk_config.max_repos_for_activity
+        user_repos = [r.full_name for r in repos.repos[:max_repos]]
 
         activity = await self.get_activity(
             username,
@@ -324,7 +356,8 @@ class GitHubResearcher:
 
         # Collect repos
         repos = await self.get_repos(username)
-        user_repos = [r.full_name for r in repos.repos[:DEFAULT_MAX_REPOS_FOR_ACTIVITY]]
+        max_repos = self._sdk_config.max_repos_for_activity
+        user_repos = [r.full_name for r in repos.repos[:max_repos]]
 
         # Collect contributions (if authenticated)
         contributions = None

@@ -1,4 +1,31 @@
-"""Exceptions for GitHub Researcher SDK."""
+"""Exceptions for GitHub Researcher SDK.
+
+Exception Hierarchy:
+    GitHubResearcherError (base)
+    ├── GitHubAPIError (HTTP API errors with status codes)
+    │   ├── GitHubRateLimitError (403 rate limit from API response)
+    │   └── GitHubNotFoundError (404 not found)
+    ├── GitHubGraphQLError (GraphQL API errors)
+    ├── RateLimitExceededError (local rate limit tracking, before making request)
+    ├── UserNotFoundError (high-level user not found)
+    └── AuthenticationError (token invalid or required)
+
+Usage:
+    - GitHubRateLimitError: Raised when GitHub API returns 403 with rate limit message
+    - RateLimitExceededError: Raised by local RateLimiter when limits are exhausted
+      (prevents making requests that would fail)
+"""
+
+__all__ = [
+    "GitHubResearcherError",
+    "GitHubAPIError",
+    "GitHubRateLimitError",
+    "GitHubNotFoundError",
+    "GitHubGraphQLError",
+    "RateLimitExceededError",
+    "UserNotFoundError",
+    "AuthenticationError",
+]
 
 
 class GitHubResearcherError(Exception):
@@ -8,7 +35,7 @@ class GitHubResearcherError(Exception):
 
 
 class GitHubAPIError(GitHubResearcherError):
-    """Base exception for GitHub API errors."""
+    """Base exception for GitHub API errors (HTTP responses with error status codes)."""
 
     def __init__(
         self,
@@ -22,7 +49,11 @@ class GitHubAPIError(GitHubResearcherError):
 
 
 class GitHubRateLimitError(GitHubAPIError):
-    """Raised when GitHub API rate limit is exceeded."""
+    """Raised when GitHub API returns a rate limit error (HTTP 403).
+
+    This is raised after receiving a rate limit response from the GitHub API.
+    For preemptive rate limiting (before making requests), see RateLimitExceededError.
+    """
 
     def __init__(
         self,
@@ -36,7 +67,7 @@ class GitHubRateLimitError(GitHubAPIError):
 
 
 class GitHubNotFoundError(GitHubAPIError):
-    """Raised when a GitHub resource is not found."""
+    """Raised when a GitHub resource is not found (HTTP 404)."""
 
     def __init__(
         self,
@@ -56,7 +87,14 @@ class GitHubGraphQLError(GitHubResearcherError):
 
 
 class RateLimitExceededError(GitHubResearcherError):
-    """Raised when rate limit is exceeded and we don't want to wait."""
+    """Raised by local rate limiter when limits are exhausted.
+
+    This is a preemptive exception raised before making a request when the
+    local rate limit tracker indicates no remaining requests. This prevents
+    making requests that would fail with GitHubRateLimitError.
+
+    Unlike GitHubRateLimitError, this does not involve an actual API call.
+    """
 
     pass
 

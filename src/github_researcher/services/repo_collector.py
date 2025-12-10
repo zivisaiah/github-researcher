@@ -61,9 +61,7 @@ class RepoCollector:
             )
             repos_for_languages = sorted_repos[:max_repos_for_languages]
 
-            logger.debug(
-                "Fetching language breakdown for %d repos", len(repos_for_languages)
-            )
+            logger.debug("Fetching language breakdown for %d repos", len(repos_for_languages))
 
             # Fetch languages concurrently in batches
             batch_size = 10
@@ -83,9 +81,7 @@ class RepoCollector:
 
         return RepositorySummary.from_repos(repos, repo_languages)
 
-    async def _fetch_repo_languages(
-        self, owner: str, repo: str
-    ) -> dict[str, int]:
+    async def _fetch_repo_languages(self, owner: str, repo: str) -> dict[str, int]:
         """Fetch language breakdown for a repository."""
         try:
             return await self.rest_client.get_repo_languages(owner, repo)

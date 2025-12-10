@@ -9,7 +9,6 @@ import vcr
 from github_researcher.config import Config, set_config
 from github_researcher.utils.rate_limiter import reset_rate_limiter
 
-
 # VCR configuration
 CASSETTES_DIR = Path(__file__).parent / "cassettes"
 

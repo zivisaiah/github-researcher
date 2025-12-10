@@ -299,8 +299,6 @@ class GitHubGraphQLClient:
                 to_date = today
 
             if from_date <= today:
-                results[year] = await self.get_contributions(
-                    username, from_date, to_date
-                )
+                results[year] = await self.get_contributions(username, from_date, to_date)
 
         return results

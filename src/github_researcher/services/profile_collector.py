@@ -73,17 +73,13 @@ class ProfileCollector:
         followers = []
         if include_followers:
             max_pages = (max_followers + 99) // 100
-            followers = await self.rest_client.get_user_followers(
-                username, max_pages=max_pages
-            )
+            followers = await self.rest_client.get_user_followers(username, max_pages=max_pages)
 
         # Fetch following if requested
         following = []
         if include_following:
             max_pages = (max_following + 99) // 100
-            following = await self.rest_client.get_user_following(
-                username, max_pages=max_pages
-            )
+            following = await self.rest_client.get_user_following(username, max_pages=max_pages)
 
         return SocialData(
             followers_count=len(followers),

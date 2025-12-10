@@ -42,7 +42,7 @@ from github_researcher.models import (
     SocialData,
     UserProfile,
 )
-from github_researcher.sdk import GitHubResearcher
+from github_researcher.sdk import GitHubResearcher, SDKConfig
 
 try:
     from github_researcher._version import version as __version__
@@ -53,6 +53,7 @@ __all__ = [
     # Main SDK class
     "GitHubResearcher",
     # Configuration
+    "SDKConfig",
     "Config",
     # Exceptions
     "GitHubResearcherError",
